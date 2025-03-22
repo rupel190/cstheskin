@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS skin_images (
 	image_path TEXT NOT NULL
 );
 
-DROP TABLE IF EXISTS player;
-CREATE TABLE IF NOT EXISTS player (
+DROP TABLE IF EXISTS players;
+CREATE TABLE IF NOT EXISTS players (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	uuid TEXT UNIQUE NOT NULL,
 	name TEXT
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS player (
 DROP TABLE IF EXISTS player_progress;
 CREATE TABLE IF NOT EXISTS player_progress (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	player_id INTEGER NOT NULL REFERENCES player(id),
+	player_id INTEGER NOT NULL REFERENCES players(id),
 	skin_id INTEGER NOT NULL REFERENCES skins(id),
 	current_stage INTEGER DEFAULT 1, -- 1 to 5 getting progressively easier
 	solved BOOLEAN DEFAULT FALSE,

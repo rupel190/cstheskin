@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
-  let playerId = 'player123'; // eventually get this from localStorage or your /api/player/new
-  let imageUrl = '';
-  let guessInput = '';
-  let message = '';
+  let playerId = "player123"; // eventually get this from localStorage or your /api/player/new
+  let imageUrl = "";
+  let guessInput = "";
+  let message = "";
   let hints: string[] = [];
 
   async function fetchImage() {
@@ -21,7 +21,7 @@
 
   function drawImage(url: string) {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
@@ -31,15 +31,38 @@
   }
 
   async function submitGuess() {
-    const res = await fetch('/api/guess?' + new URLSearchParams({
-      uuid: 'skin-uuid-placeholder',
-      guess_input: guessInput
-    }));
+    const res = await fetch(
+      "/api/guess?" +
+        new URLSearchParams({
+          uuid: "skin-uuid-placeholder",
+          guess_input: guessInput,
+        }),
+    );
     const data = await res.json();
     if (data.correct) {
-      message = '🎯 Correct!';
+      message = "🎯 Correct!";
     } else {
-      message = '❌ Wrong. Next image stage...';
+      message = "❌ Wrong. Next image stage...";
+      await fetchImage();
+      await fetchHints();
+    }
+  }
+
+  async function testApi() {
+    console.log("Guess: ", guessInput);
+    const res = await fetch(
+      "/api/skins?" +
+        new URLSearchParams({
+          name: guessInput,
+        }),
+    );
+    const data = await res.json();
+    console.log("TODO: REMOVE LINE! Data: ", data);
+
+    if (data.length > 0) {
+      message = "🎯 Correct: " + data.at(0).name + "!";
+    } else {
+      message = "❌ Wrong. Proceeding ...";
       await fetchImage();
       await fetchHints();
     }
@@ -52,13 +75,14 @@
   }
 
   onMount(async () => {
-    ctx = canvas.getContext('2d')!;
-    await fetchImage();
+    ctx = canvas.getContext("2d")!;
+    console.log("Page load: Fetch image INACTIVE.");
+    // await fetchImage();
   });
 </script>
 
 <div class="max-w-xl mx-auto p-6 space-y-6 text-center">
-  <h1 class="text-3xl font-bold">🎮 Guess the CS Skin</h1>
+  <h1 class="text-3xl font-bold">🎮 CsTheSkin: Guess the CS Skin</h1>
 
   <div class="border rounded shadow overflow-hidden bg-gray-100">
     <canvas bind:this={canvas} class="w-full max-h-[400px]"></canvas>
@@ -78,6 +102,13 @@
     Submit Guess
   </button>
 
+  <button
+    on:click={testApi}
+    class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+  >
+    TEST API
+  </button>
+
   {#if message}
     <p class="text-lg mt-4">{message}</p>
   {/if}
@@ -93,4 +124,3 @@
     </div>
   {/if}
 </div>
-
