@@ -14,7 +14,7 @@
     const res = await fetch(`${API_URL}/api/skins/random`);
     const { uuid } = await res.json();
     console.log("UUID IN FE: ", uuid);
-    const imgres = await fetch(`/api/image?uuid=${uuid}`);
+    const imgres = await fetch(`${API_URL}/api/image?uuid=${uuid}`);
     const blob = await imgres.blob();
     imageUrl = URL.createObjectURL(blob);
 
