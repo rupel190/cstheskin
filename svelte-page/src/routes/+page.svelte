@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  const API_URL = import.meta.env.VITE_API_BASE;
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -10,7 +11,7 @@
   let hints: string[] = [];
 
   async function fetchImage() {
-    const res = await fetch(`/api/skins/random`);
+    const res = await fetch(`${API_URL}/api/skins/random`);
     const { uuid } = await res.json();
     console.log("UUID IN FE: ", uuid);
     const imgres = await fetch(`/api/image?uuid=${uuid}`);
