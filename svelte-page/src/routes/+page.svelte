@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   const API_URL = import.meta.env.VITE_API_BASE;
+  console.log("API_URL from env:", API_URL);
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
