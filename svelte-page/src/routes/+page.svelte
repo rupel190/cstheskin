@@ -10,13 +10,19 @@
   let hints: string[] = [];
 
   async function fetchImage() {
-    const res = await fetch(`/api/skins/today/${playerId}`);
-    const data = await res.json();
+    const res = await fetch(`/api/skins/random`);
+    const { uuid } = await res.json();
+    console.log("UUID IN FE: ", uuid);
+    const imgres = await fetch(`/api/image?uuid=${uuid}`);
+    const blob = await imgres.blob();
+    imageUrl = URL.createObjectURL(blob);
 
-    const signed = await fetch(data.image_url);
-    const imgData = await signed.json();
-    imageUrl = imgData.signed_url;
-    drawImage(imageUrl);
+    // const data = await res.json();
+
+    // const signed = await fetch(data.image_url);
+    // const imgData = await signed.json();
+    // imageUrl = imgData.signed_url;
+    // drawImage(imageUrl);
   }
 
   function drawImage(url: string) {
@@ -75,9 +81,8 @@
   }
 
   onMount(async () => {
-    ctx = canvas.getContext("2d")!;
-    console.log("Page load: Fetch image INACTIVE.");
-    // await fetchImage();
+    // ctx = canvas.getContext("2d")!;
+    await fetchImage();
   });
 </script>
 
@@ -85,7 +90,8 @@
   <h1 class="text-3xl font-bold">🎮 CsTheSkin: Guess the CS Skin</h1>
 
   <div class="border rounded shadow overflow-hidden bg-gray-100">
-    <canvas bind:this={canvas} class="w-full max-h-[400px]"></canvas>
+    <img src={imageUrl} alt="mystery skin" class="w-full" />
+    <!-- <canvas bind:this={canvas} class="w-full max-h-[200px]"></canvas> -->
   </div>
 
   <input

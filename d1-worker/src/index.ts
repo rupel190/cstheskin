@@ -5,8 +5,63 @@ var index_default = {
 		const { pathname } = url
 		const { searchParams } = url
 
+		console.log("HOLADRIAO", request, pathname, searchParams);
+
+		// Insert new skin
+		if (pathname === "/api/skins/insert") {
+			console.log("Insert skin!");
+			try {
+				const name = searchParams.get("name")?.trim();
+				const encryptedName = searchParams.get("encrypted_name")?.trim();
+
+				if (!name || !encryptedName) {
+					return new Response("Missing name or encrypted_name", { status: 400 });
+				}
+
+				const skinUuid = crypto.randomUUID();
+
+				await env.devDB
+					.prepare(`
+						INSERT INTO skins (uuid, name, encrypted_name)
+						VALUES (?, ?, ?)
+						ON CONFLICT(uuid)
+						DO UPDATE SET name = excluded.name, encrypted_name = excluded.encrypted_name
+					`)
+					.bind(skinUuid, name, encryptedName)
+					.run();
+				return Response.json({ message: "Skin created, reference images using", uuid: skinUuid });
+			} catch (error) {
+				console.error("Error inserting skin:", error);
+				return new Response("Internal Server Error", { status: 500 });
+			}
+		}
+
+		// Insert new player
+		if (request.method === "GET" && pathname === "/api/player/new") {
+			try {
+				const name = searchParams.get("name");
+				const playerUuid = crypto.randomUUID(); // Generate unique UUID
+
+				if (!name) {
+					env.devDB
+						.prepare("INSERT INTO players (uuid) VALUES (?)")
+						.bind(playerUuid)
+						.run() // Use .run() for INSERT
+				} else {
+					env.devDB
+						.prepare("INSERT INTO players (uuid, name) VALUES (?, ?)")
+						.bind(playerUuid, name)
+						.run()
+				}
+				return Response.json({ message: "Player created", uuid: playerUuid });
+			} catch (error) {
+				console.error("Error inserting player:", error);
+				return new Response("Internal Server Error", { status: 500 });
+			}
+		}
+
 		// (Debug) Get skin by name
-		if (pathname === "/api/skins") {
+		if (request.method === "GET" && pathname === "/api/skins") {
 			try {
 				let name = searchParams.get("name");
 				const query = env.devDB.prepare("SELECT * FROM skins WHERE name = ?").bind(name);
@@ -20,7 +75,7 @@ var index_default = {
 		}
 
 		// Get skin by uuid
-		if (pathname === "/api/skins") {
+		if (request.method === "GET" && pathname === "/api/skins") {
 			try {
 				const uuid = searchParams.get("uuid");
 				const query = env.devDB.prepare("SELECT * FROM skins WHERE uuid = ?").bind(uuid);
@@ -32,13 +87,17 @@ var index_default = {
 			}
 		}
 
-		// Get all skin uuids
-		if (url.pathname === "/api/skins/uuids") {
-			// Fetch all skin UUIDs
-			const { results } = await env.devDB.prepare(
-				"SELECT uuid FROM skins ORDER BY created_at ASC"
-			).all();
-			return Response.json(results);
+
+		// TODO: Get random skin uuids
+		if (request.method === "GET" && url.pathname === "/api/skins/random") {
+			// Fetch random skin
+			const result = await env.devDB
+				.prepare(
+					"SELECT uuid FROM skins ORDER BY created_at DESC"
+				)
+				.first();
+			console.log("Random skin: ", result)
+			return Response.json(result);
 		}
 
 
@@ -76,18 +135,43 @@ var index_default = {
 		}
 
 		// Get image for skin and stage
-		if (request.method === "GET" && url.pathname === "/api/image/") {
-			try {
-				const { uuid, current_stage } = await request.json();
-				const { results } = await env.devDB.prepare(
-					"SELECT image_path FROM skin_images WHERE skin_id = (SELECT id FROM skins WHERE uuid = ?) AND stage = ?")
-					.bind(uuid, current_stage)
-					.all();
-				return Response.json(results);
+		if (request.method === "GET" && url.pathname === "/api/image") {
+			const uuid = searchParams.get("uuid");
+			const stage = searchParams.get("stage") || "1";
 
+			console.log("\nuuid:", uuid, "| stage:", stage)
+			console.log("ENV R2 available?", typeof env.IMAGES_BUCKET, env.IMAGES_BUCKET);
+			const list = await env.IMAGES_BUCKET.list();
+			console.log("Available objects in R2:", list.objects.map(o => o.key));
+
+			try {
+				const imageResult = await env.devDB
+					.prepare(`
+						SELECT image_path FROM skin_images
+						WHERE skin_id = (SELECT id FROM skins WHERE uuid = ?)
+						AND stage = ?`)
+					.bind(uuid, stage)
+					.first();
+				console.log("Query result:", imageResult);
+
+
+				if (!imageResult) {
+					return new Response("Image not found: " + imageResult, { status: 404 });
+				}
+				const object = await env.IMAGES_BUCKET.get(imageResult.image_path);
+				if (!object) {
+					return new Response("Image not in R2: " + imageResult.image_path, { status: 404 });
+				}
+
+				return new Response(object.body, {
+					headers: {
+						"Content-Type": "image/jpeg", // or detect from filename
+						"Cache-Control": "public, max-age=3600"
+					}
+				});
 			} catch (error) {
-				console.error("Error getting image by skin and stage:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				console.error("Error fetching image from R2:", error);
+				return new Response("Error fetching image", { status: 500 });
 			}
 		}
 
@@ -95,17 +179,17 @@ var index_default = {
 		/*
 		 * Example json input
 			{
-				"uuid": "a4c3e8aa-91f7-4e44-8f57-1342cbf2013d",
+				"uuid": "0d7cd531-4b37-4437-ad0f-cb73e976026a",
 				"images": [
-					{ "stage": 1, "image_path": "a4c3e8aa_stage1.jpg" },
-					{ "stage": 2, "image_path": "a4c3e8aa_stage2.jpg" },
-					{ "stage": 3, "image_path": "a4c3e8aa_stage3.jpg" },
-					{ "stage": 4, "image_path": "a4c3e8aa_stage4.jpg" },
-					{ "stage": 5, "image_path": "a4c3e8aa_stage5.jpg" }
+					{ "stage": 1, "image_path": "redline_test1.png" },
+					{ "stage": 2, "image_path": "redline_test2.png" },
+					{ "stage": 3, "image_path": "redline_test3.png" },
+					{ "stage": 4, "image_path": "redline_test4.png" },
+					{ "stage": 5, "image_path": "redline_test5.png" }
 				]
 			}
 			* */
-		if (request.method === "POST" && url.pathname === "/api/image/") {
+		if (request.method === "POST" && url.pathname === "/api/image") {
 			try {
 				const { uuid, images } = await request.json();
 
@@ -140,57 +224,8 @@ var index_default = {
 			}
 		}
 
-		// Insert new skin
-		if (request.method === "GET" && url.pathname === "/api/skins") {
-			try {
-				const name = searchParams.get("name")?.trim();
-				const encryptedName = searchParams.get("encrypted_name")?.trim();
+		//
 
-				if (!name || !encryptedName) {
-					return new Response("Missing name or encrypted_name", { status: 400 });
-				}
-
-				const skinUuid = crypto.randomUUID();
-
-				await env.devDB
-					.prepare(`
-						INSERT INTO skins (uuid, name, encrypted_name)
-						VALUES (?, ?, ?)
-						ON CONFLICT(uuid)
-						DO UPDATE SET name, encryptedName
-					`)
-					.bind(skinUuid, name, encryptedName)
-					.run();
-				return Response.json({ message: "Skin created, reference images using", uuid: skinUuid });
-			} catch (error) {
-				console.error("Error inserting skin:", error);
-				return new Response("Internal Server Error", { status: 500 });
-			}
-		}
-
-		// Insert new player
-		if (request.method === "GET" && url.pathname === "/api/player/new") {
-			try {
-				const name = searchParams.get("name");
-				const playerUuid = crypto.randomUUID(); // Generate unique UUID
-
-				if (!name) {
-					env.devDB
-						.prepare("INSERT INTO players (uuid) VALUES (?)")
-						.bind(playerUuid)
-						.run() // Use .run() for INSERT
-				} else {
-					env.devDB
-						.prepare("INSERT INTO players (uuid, name) VALUES (?, ?)")
-						.bind(playerUuid, name)
-						.run()
-				}
-				return Response.json({ message: "Player created", uuid: playerUuid });
-			} catch (error) {
-				console.error("Error inserting player:", error);
-				return new Response("Internal Server Error", { status: 500 });
-			}
-		}
 
 
 		// 💷 Guess 🎰 the 🎰 skin 💷

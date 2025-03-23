@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS skin_images (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	skin_id INTEGER NOT NULL REFERENCES skins(id),
 	stage INTEGER NOT NULL,
-	image_path TEXT NOT NULL
+	image_path TEXT NOT NULL,
+	UNIQUE (skin_id, stage)
 );
 
 DROP TABLE IF EXISTS players;
