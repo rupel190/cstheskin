@@ -7,6 +7,19 @@ var index_default = {
 
 		console.log("HOLADRIAO", request, pathname, searchParams);
 
+		function withCors(response: Response) {
+			return new Response(response.body, {
+				status: response.status,
+				headers: {
+					...Object.fromEntries(response.headers),
+					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+					"Access-Control-Allow-Headers": "Content-Type",
+				},
+			});
+		}
+
+
 		// Insert new skin
 		if (pathname === "/api/skins/insert") {
 			console.log("Insert skin!");
@@ -15,7 +28,7 @@ var index_default = {
 				const encryptedName = searchParams.get("encrypted_name")?.trim();
 
 				if (!name || !encryptedName) {
-					return new Response("Missing name or encrypted_name", { status: 400 });
+					return withCors(new Response("Missing name or encrypted_name", { status: 400 }));
 				}
 
 				const skinUuid = crypto.randomUUID();
@@ -29,10 +42,10 @@ var index_default = {
 					`)
 					.bind(skinUuid, name, encryptedName)
 					.run();
-				return Response.json({ message: "Skin created, reference images using", uuid: skinUuid });
+				return withCors(Response.json({ message: "Skin created, reference images using", uuid: skinUuid }));
 			} catch (error) {
 				console.error("Error inserting skin:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
@@ -43,20 +56,20 @@ var index_default = {
 				const playerUuid = crypto.randomUUID(); // Generate unique UUID
 
 				if (!name) {
-					env.devDB
+					await env.devDB
 						.prepare("INSERT INTO players (uuid) VALUES (?)")
 						.bind(playerUuid)
 						.run() // Use .run() for INSERT
 				} else {
-					env.devDB
+					await env.devDB
 						.prepare("INSERT INTO players (uuid, name) VALUES (?, ?)")
 						.bind(playerUuid, name)
 						.run()
 				}
-				return Response.json({ message: "Player created", uuid: playerUuid });
+				return withCors(Response.json({ message: "Player created", uuid: playerUuid }));
 			} catch (error) {
 				console.error("Error inserting player:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
@@ -64,29 +77,41 @@ var index_default = {
 		if (request.method === "GET" && pathname === "/api/skins") {
 			try {
 				let name = searchParams.get("name");
-				const query = env.devDB.prepare("SELECT * FROM skins WHERE name = ?").bind(name);
+				const query = await env.devDB.prepare("SELECT * FROM skins WHERE name = ?").bind(name);
 				const { results } = await query.all();
-				// console.log("Query results:", results);
-				return Response.json(results);
+				console.log("Query results:", results);
+				return withCors(Response.json(results));
 			} catch (error) {
 				console.error("Error executing query:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
-		// Get skin by uuid
+		// Get skin details by uuid
 		if (request.method === "GET" && pathname === "/api/skins") {
 			try {
 				const uuid = searchParams.get("uuid");
-				const query = env.devDB.prepare("SELECT * FROM skins WHERE uuid = ?").bind(uuid);
+				const query = await env.devDB.prepare("SELECT * FROM skins WHERE uuid = ?").bind(uuid);
 				const { results } = await query.all();
-				return Response.json(results);
+				return withCors(Response.json(results));
 			} catch (error) {
 				console.error("Error executing query:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
+
+		// Get most recently added skin uuid
+		if (request.method === "GET" && url.pathname === "/api/skins/latest") {
+			// Fetch random skin
+			const result = await env.devDB
+				.prepare(
+					"SELECT uuid FROM skins ORDER BY created_at DESC"
+				)
+				.first();
+			console.log("Most recently added skin: ", result)
+			return withCors(Response.json(result));
+		}
 
 		// TODO: Get random skin uuids
 		if (request.method === "GET" && url.pathname === "/api/skins/random") {
@@ -97,7 +122,7 @@ var index_default = {
 				)
 				.first();
 			console.log("Random skin: ", result)
-			return Response.json(result);
+			return withCors(Response.json(result));
 		}
 
 
@@ -110,11 +135,11 @@ var index_default = {
 					"SELECT * FROM players WHERE uuid = ?")
 					.bind(uuid)
 					.all();
-				return Response.json(results);
+				return withCors(Response.json(results));
 
 			} catch (error) {
 				console.error("Error getting player by uuid:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
@@ -126,11 +151,11 @@ var index_default = {
 					"SELECT skin, current_stage, solved FROM player_progress WHERE player_id = (SELECT id FROM players WHERE uuid = ?)")
 					.bind(uuid)
 					.all();
-				return Response.json(results);
+				return withCors(Response.json(results));
 
 			} catch (error) {
 				console.error("Error getting player progress by uuid:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
@@ -156,22 +181,22 @@ var index_default = {
 
 
 				if (!imageResult) {
-					return new Response("Image not found: " + imageResult, { status: 404 });
+					return withCors(new Response("Image not found: " + imageResult, { status: 404 }));
 				}
 				const object = await env.IMAGES_BUCKET.get(imageResult.image_path);
 				if (!object) {
-					return new Response("Image not in R2: " + imageResult.image_path, { status: 404 });
+					return withCors(new Response("Image not in R2: " + imageResult.image_path, { status: 404 }));
 				}
 
-				return new Response(object.body, {
+				return withCors(new Response(object.body, {
 					headers: {
 						"Content-Type": "image/jpeg", // or detect from filename
 						"Cache-Control": "public, max-age=3600"
 					}
-				});
+				}));
 			} catch (error) {
 				console.error("Error fetching image from R2:", error);
-				return new Response("Error fetching image", { status: 500 });
+				return withCors(new Response("Error fetching image", { status: 500 }));
 			}
 		}
 
@@ -194,7 +219,7 @@ var index_default = {
 				const { uuid, images } = await request.json();
 
 				if (!uuid || !Array.isArray(images)) {
-					return new Response("Invalid payload", { status: 400 });
+					return withCors(new Response("Invalid payload", { status: 400 }));
 				}
 
 				const skin = await env.devDB
@@ -203,10 +228,10 @@ var index_default = {
 					.first();
 
 				if (!skin) {
-					return new Response("Skin not found", { status: 404 });
+					return withCors(new Response("Skin not found", { status: 404 }));
 				}
 
-				const stmt = env.devDB.prepare(`
+				const stmt = await env.devDB.prepare(`
 					INSERT INTO skin_images (skin_id, stage, image_path)
 					VALUES (?, ?, ?)
 					ON CONFLICT(skin_id, stage)
@@ -217,10 +242,10 @@ var index_default = {
 					await stmt.bind(skin.id, stage, image_path).run();
 				}
 
-				return Response.json({ message: "Images upserted successfully" });
+				return withCors(Response.json({ message: "Images upserted successfully" }));
 			} catch (error) {
 				console.error("Error inserting/updating skin images:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
@@ -237,11 +262,11 @@ var index_default = {
 					"SELECT count(*) FROM skins WHERE uuid = ? AND name = ?")
 					.bind(uuid, guess_input)
 					.first();
-				return Response.json(results);
+				return withCors(Response.json(results));
 
 			} catch (error) {
 				console.error("Error getting image by skin and stage:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
@@ -250,7 +275,7 @@ var index_default = {
 			try {
 				const { player_uuid, skin_uuid, current_stage, solved } = await request.json();
 
-				env.devDB
+				await env.devDB
 					.prepare(`
 							INSERT INTO player_progress (player_id, skin_id, current_stage, solved)
 							VALUES (
@@ -264,20 +289,20 @@ var index_default = {
 									solved = excluded.correct`)
 					.bind(player_uuid, skin_uuid, current_stage, solved)
 					.run() // Use .run() for INSERT
-				return Response.json({ message: "Player progress updated" });
+				return withCors(Response.json({ message: "Player progress updated" }));
 			} catch (error) {
 				console.error("Error inserting player:", error);
-				return new Response("Internal Server Error", { status: 500 });
+				return withCors(new Response("Internal Server Error", { status: 500 }));
 			}
 		}
 
 
 		if (pathname === "/") {
-			return new Response("Worker is running! Try hitting a real /api/ endpoint.");
+			return withCors(new Response("Worker is running! Try hitting a real /api/ endpoint."));
 		}
 
 		if (pathname === "/favicon.ico") {
-			return new Response(null, { status: 204 });
+			return withCors(new Response(null, { status: 204 }));
 		}
 		return new Response(
 			JSON.stringify({ error: "Endpoint not found", path: url.pathname }),

@@ -11,79 +11,102 @@
   let message = "";
   let hints: string[] = [];
 
-  async function fetchImage() {
-    const res = await fetch(`${API_URL}/api/skins/random`);
-    const { uuid } = await res.json();
-    console.log("UUID IN FE: ", uuid);
-    const imgres = await fetch(`${API_URL}/api/image?uuid=${uuid}`);
-    const blob = await imgres.blob();
-    imageUrl = URL.createObjectURL(blob);
+  let currentUuid = "skin-uuid-placeholder";
+  let currentStage = 1;
 
-    // const data = await res.json();
-
-    // const signed = await fetch(data.image_url);
-    // const imgData = await signed.json();
-    // imageUrl = imgData.signed_url;
-    // drawImage(imageUrl);
-  }
-
-  function drawImage(url: string) {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-    };
-    img.src = url;
+  function api(path: string) {
+    return `${API_URL}${path}`;
   }
 
   async function submitGuess() {
-    const res = await fetch(
-      "/api/guess?" +
-        new URLSearchParams({
-          uuid: "skin-uuid-placeholder",
-          guess_input: guessInput,
-        }),
-    );
-    const data = await res.json();
-    if (data.correct) {
-      message = "🎯 Correct!";
-    } else {
-      message = "❌ Wrong. Next image stage...";
-      await fetchImage();
-      await fetchHints();
-    }
-  }
-
-  async function testApi() {
     console.log("Guess: ", guessInput);
     const res = await fetch(
-      "/api/skins?" +
+      api("/api/skins?") +
         new URLSearchParams({
+          uuid: currentUuid,
           name: guessInput,
         }),
     );
+    // Verify result
     const data = await res.json();
-    console.log("TODO: REMOVE LINE! Data: ", data);
-
-    if (data.length > 0) {
-      message = "🎯 Correct: " + data.at(0).name + "!";
+    console.log("Data: ", data);
+    if (await verifyGuess(data)) {
+      console.log("Correct skin guess DINGIDNGINDFGINDGIDDINGDING"); // TODO
+      switch (currentStage) {
+        case 0:
+          break;
+        case 1:
+          console.log("Win at stage 1");
+          break;
+        case 2:
+          console.log("Win at stage 2");
+          break;
+        case 3:
+          console.log("Win at stage 3");
+          break;
+        case 4:
+          console.log("Win at stage 4");
+          break;
+        case 5:
+          console.log("Win at stage 5");
+          break;
+        default:
+          break;
+      }
     } else {
-      message = "❌ Wrong. Proceeding ...";
+      currentStage++;
       await fetchImage();
-      await fetchHints();
+      //TODO: Update counter or  whatever
     }
   }
 
+  async function verifyGuess(data: { name: string }[]) {
+    const first = data?.[0];
+    if (first?.name) {
+      message = "🎯 Correct: " + first.name + "!";
+      return true;
+    } else {
+      message = "❌ Wrong. Proceeding ...";
+      return false;
+    }
+  }
+
+  async function fetchImage() {
+    console.log(
+      "Searching image with UUID: ",
+      currentUuid,
+      " and stage: ",
+      currentStage,
+    );
+
+    const imgres = await fetch(
+      api("/api/image?") +
+        new URLSearchParams({
+          uuid: currentUuid,
+          stage: currentStage.toString(),
+        }),
+    );
+    const blob = await imgres.blob();
+    imageUrl = URL.createObjectURL(blob);
+  }
+
+  async function fetchLatest() {
+    const res = await fetch(api(`/api/skins/latest`));
+    const { uuid } = await res.json();
+    console.log("uuid for latest: ", uuid);
+    currentUuid = uuid;
+  }
+
   async function fetchHints() {
-    const res = await fetch(`/api/hints/${playerId}`);
+    const res = await fetch(api(`/api/hints/${playerId}`));
     const data = await res.json();
     hints = data.hints || [];
   }
 
   onMount(async () => {
     // ctx = canvas.getContext("2d")!;
+    console.log("Mounting...");
+    await fetchLatest();
     await fetchImage();
   });
 </script>
@@ -110,12 +133,12 @@
     Submit Guess
   </button>
 
-  <button
-    on:click={testApi}
-    class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-  >
-    TEST API
-  </button>
+  <!-- <button -->
+  <!--   on:click={testApi} -->
+  <!--   class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" -->
+  <!-- > -->
+  <!--   TEST API -->
+  <!-- </button> -->
 
   {#if message}
     <p class="text-lg mt-4">{message}</p>
