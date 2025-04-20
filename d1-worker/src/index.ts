@@ -1,318 +1,208 @@
-// src/index.ts
-var index_default = {
+const SECRET = "super_secret_server_side_salt"; // TODO: move to env in prod!
+
+export default {
 	async fetch(request, env) {
 		const url = new URL(request.url);
-		const { pathname } = url
-		const { searchParams } = url
+		const { pathname } = url;
 
-		console.log("HOLADRIAO", request, pathname, searchParams);
+		const cookies = parseCookies(request.headers.get("cookie"));
+		const userToken = cookies["user"];
+		const userUuid = await verifyToken(userToken);
 
-		function withCors(response: Response) {
-			return new Response(response.body, {
-				status: response.status,
+		// 🎮 Initialize player and set cookie
+		if (!userUuid) {
+			const uuid = crypto.randomUUID();
+			const token = await generateUserToken(uuid);
+
+			return new Response("Invalid or missing user ID. New user initialized.", {
 				headers: {
-					...Object.fromEntries(response.headers),
-					"Access-Control-Allow-Origin": "*",
-					"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-					"Access-Control-Allow-Headers": "Content-Type",
-				},
+					"Set-Cookie": `user=${token}; Path=/; HttpOnly`,
+					"Access-Control-Allow-Origin": "*"
+				}
+			});
+		}
+
+		// 🎮 Start game
+		if (pathname === "/api/game/start") {
+			// Try to find a skin the player hasn't started yet
+			const skinUuid = await env.devDB.prepare(`
+				SELECT uuid FROM skins
+				WHERE NOT EXISTS (
+					SELECT 1 FROM player_progress
+					WHERE player_id = (SELECT id FROM players WHERE uuid = ?)
+					AND skin_id = skins.id
+				)
+				ORDER BY id ASC
+				LIMIT 1
+			`).bind(userUuid).first();
+
+			if (!skinUuid) {
+				return new Response("You finished all available skins!", {
+					status: 200,
+					headers: {
+						"Access-Control-Allow-Origin": "*"
+					}
+				});
+			}
+			return new Response(skinUuid, {
+				status: 200,
+				headers: {
+					"Access-Control-Allow-Origin": "*"
+				}
+			});
+		}
+
+		// 🖼 Get image for specific skin/stage
+		if (pathname === "/api/image" && request.method === "GET") {
+			const url = new URL(request.url);
+			const skinUuid = url.searchParams.get("skinUuid");
+
+			if (!skinUuid) {
+				return new Response("Missing skin UUID", { status: 400 });
+			}
+
+			const image = await env.devDB.prepare(`
+				SELECT image_path FROM skin_images
+				WHERE skin_id = (SELECT id FROM skins WHERE uuid = ?)
+				AND stage = (
+					SELECT current_stage
+					FROM player_progress
+					WHERE player_id = (SELECT id FROM players WHERE uuid = ?)
+					AND skin_id = (SELECT id FROM skins WHERE uuid = ?)
+					ORDER BY current_stage DESC LIMIT 1
+				)
+			`).bind(skinUuid, userUuid, skinUuid).first();
+
+			if (!image) return new Response("Image not found", { status: 404 });
+
+			const file = await env.IMAGES_BUCKET.get(image.image_path);
+			if (!file) return new Response("Image file not in R2", { status: 404 });
+
+			return new Response(file.body, {
+				headers: {
+					"Content-Type": "image/jpeg",
+					"Access-Control-Allow-Origin": "*"
+				}
+			});
+
+		}
+
+		// 🎯 Guess
+		if (pathname === "/api/guess" && request.method === "GET") {
+			const url = new URL(request.url);
+			const skinUuid = url.searchParams.get("skinUuid");
+			const guess = url.searchParams.get("guess");
+
+			if (!skinUuid || !guess) {
+				return new Response("Missing parameters", { status: 400 });
+			}
+
+			// Step 1: Fetch skin name
+			const skin = await env.devDB
+				.prepare("SELECT id, name FROM skins WHERE uuid = ?")
+				.bind(skinUuid)
+				.first();
+
+			if (!skin) {
+				return new Response("Skin not found", { status: 404 });
+			}
+			//TODO: fuzzy
+			const correct = skin.name.toLowerCase() === guess.toLowerCase();
+
+			// Step 2: Find player ID
+			let player = await env.devDB
+				.prepare("SELECT id, name FROM players WHERE uuid = ?")
+				.bind(userUuid)
+				.first();
+
+			if (!player) {
+				try {
+					await env.devDB.prepare(`
+						INSERT INTO players(uuid) VALUES(?)
+					`).bind(userUuid).run();
+					return new Response("Player created", { status: 201 });
+				} catch (err) {
+					console.error("Error inserting player:", err);
+					return new Response("Player already exists", { status: 409 }); // 409 Conflict
+				}
+			}
+			// Retrieve the newly inserted player's ID
+			player = await env.devDB
+				.prepare("SELECT id, name FROM players WHERE uuid = ?")
+				.bind(userUuid)
+				.first();
+
+			if (!player) {
+				return new Response("Failed to retrieve player ID after insertion", { status: 500 });
+			}
+
+			// Step 3: Fetch current stage
+			const progress = await env.devDB
+				.prepare("SELECT current_stage FROM player_progress WHERE player_id = ? AND skin_id = ?")
+				.bind(player.id, skin.id)
+				.first();
+
+			const stage = progress?.current_stage ?? 1;
+
+			// Step 4: Upsert player progress
+			await env.devDB.prepare(`
+				INSERT INTO player_progress (player_id, skin_id, current_stage, solved)
+				VALUES (?, ?, ?, ?)
+				ON CONFLICT(player_id, skin_id) DO UPDATE SET
+					current_stage = excluded.current_stage,
+					solved = excluded.solved
+			`).bind(
+				player.id,
+				skin.id,
+				correct ? stage : Math.min(stage + 1, 5),
+				correct
+			).run();
+
+			return new Response(JSON.stringify({ stage, correct }), {
+				headers: {
+					"Content-Type": "application/json",
+					"Access-Control-Allow-Origin": "*"
+				}
 			});
 		}
 
 
-		// Insert new skin
-		if (pathname === "/api/skins/insert") {
-			console.log("Insert skin!");
-			try {
-				const name = searchParams.get("name")?.trim();
-				const encryptedName = searchParams.get("encrypted_name")?.trim();
 
-				if (!name || !encryptedName) {
-					return withCors(new Response("Missing name or encrypted_name", { status: 400 }));
-				}
-
-				const skinUuid = crypto.randomUUID();
-
-				await env.devDB
-					.prepare(`
-						INSERT INTO skins (uuid, name, encrypted_name)
-						VALUES (?, ?, ?)
-						ON CONFLICT(uuid)
-						DO UPDATE SET name = excluded.name, encrypted_name = excluded.encrypted_name
-					`)
-					.bind(skinUuid, name, encryptedName)
-					.run();
-				return withCors(Response.json({ message: "Skin created, reference images using", uuid: skinUuid }));
-			} catch (error) {
-				console.error("Error inserting skin:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
+		async function verifyToken(token: string) {
+			const [uuid, hash] = token.split(".");
+			const expected = await sha256(uuid + ":" + SECRET);
+			return expected === hash ? uuid : null;
 		}
 
-		// Insert new player
-		if (request.method === "GET" && pathname === "/api/player/new") {
-			try {
-				const name = searchParams.get("name");
-				const playerUuid = crypto.randomUUID(); // Generate unique UUID
-
-				if (!name) {
-					await env.devDB
-						.prepare("INSERT INTO players (uuid) VALUES (?)")
-						.bind(playerUuid)
-						.run() // Use .run() for INSERT
-				} else {
-					await env.devDB
-						.prepare("INSERT INTO players (uuid, name) VALUES (?, ?)")
-						.bind(playerUuid, name)
-						.run()
-				}
-				return withCors(Response.json({ message: "Player created", uuid: playerUuid }));
-			} catch (error) {
-				console.error("Error inserting player:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
+		async function generateUserToken(uuid: string) {
+			const hash = await sha256(uuid + ":" + SECRET);
+			return `${uuid}.${hash}`;
 		}
 
-		// (Debug) Get skin by name
-		if (request.method === "GET" && pathname === "/api/skins") {
-			try {
-				let name = searchParams.get("name");
-				const query = await env.devDB.prepare("SELECT * FROM skins WHERE name = ?").bind(name);
-				const { results } = await query.all();
-				console.log("Query results:", results);
-				return withCors(Response.json(results));
-			} catch (error) {
-				console.error("Error executing query:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
+		function parseCookies(header: string | null) {
+			return Object.fromEntries((header || "").split(";").map(part => part.trim().split("=")));
 		}
 
-		// Get skin details by uuid
-		if (request.method === "GET" && pathname === "/api/skins") {
-			try {
-				const uuid = searchParams.get("uuid");
-				const query = await env.devDB.prepare("SELECT * FROM skins WHERE uuid = ?").bind(uuid);
-				const { results } = await query.all();
-				console.log("fetched skin: ", results);
-				return withCors(Response.json(results));
-			} catch (error) {
-				console.error("Error executing query:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
+		async function sha256(msg: string) {
+			const data = new TextEncoder().encode(msg);
+			const digest = await crypto.subtle.digest("SHA-256", data);
+			return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
 		}
 
+		async function verifyCookie(request: Request) {
+			// const cookies = parseCookies(request.headers.get("cookie"));
+			const encoded = cookies["progress"];
+			const hash = cookies["progress_hash"];
+			if (!encoded || !hash) return null;
 
-		// Get most recently added skin uuid
-		if (request.method === "GET" && url.pathname === "/api/skins/latest") {
-			// Fetch random skin
-			const result = await env.devDB
-				.prepare(
-					"SELECT uuid FROM skins ORDER BY created_at DESC"
-				)
-				.first();
-			console.log("Most recently added skin: ", result)
-			return withCors(Response.json(result));
+			const expected = await sha256(`${encoded}:${SECRET}`);
+			if (expected !== hash) return null;
+
+			const decoded = JSON.parse(atob(encoded));
+			return decoded; // { uuid, stage, solved }
 		}
 
-		// TODO: Get random skin uuids
-		if (request.method === "GET" && url.pathname === "/api/skins/random") {
-			// Fetch random skin
-			const result = await env.devDB
-				.prepare(
-					"SELECT uuid FROM skins ORDER BY created_at DESC"
-				)
-				.first();
-			console.log("Random skin: ", result)
-			return withCors(Response.json(result));
-		}
-
-
-
-		// (DEBUG) Get player by uuid
-		if (url.pathname === "/api/player") {
-			try {
-				const uuid = searchParams.get("uuid");
-				const { results } = await env.devDB.prepare(
-					"SELECT * FROM players WHERE uuid = ?")
-					.bind(uuid)
-					.all();
-				return withCors(Response.json(results));
-
-			} catch (error) {
-				console.error("Error getting player by uuid:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
-		}
-
-		// Get player progress per uuid
-		if (request.method === "GET" && url.pathname === "/api/progress") {
-			try {
-				const uuid = searchParams.get("uuid");
-				const { results } = await env.devDB.prepare(
-					"SELECT skin, current_stage, solved FROM player_progress WHERE player_id = (SELECT id FROM players WHERE uuid = ?)")
-					.bind(uuid)
-					.all();
-				return withCors(Response.json(results));
-
-			} catch (error) {
-				console.error("Error getting player progress by uuid:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
-		}
-
-		// Get image for skin and stage
-		if (request.method === "GET" && url.pathname === "/api/image") {
-			const uuid = searchParams.get("uuid");
-			const stage = searchParams.get("stage") || "1";
-
-			console.log("\nuuid:", uuid, "| stage:", stage)
-			console.log("ENV R2 available?", typeof env.IMAGES_BUCKET, env.IMAGES_BUCKET);
-			const list = await env.IMAGES_BUCKET.list();
-			console.log("Available objects in R2:", list.objects.map(o => o.key));
-
-			try {
-				const imageResult = await env.devDB
-					.prepare(`
-						SELECT image_path FROM skin_images
-						WHERE skin_id = (SELECT id FROM skins WHERE uuid = ?)
-						AND stage = ?`)
-					.bind(uuid, stage)
-					.first();
-				console.log("Query result:", imageResult);
-
-
-				if (!imageResult) {
-					return withCors(new Response("Image not found: " + imageResult, { status: 404 }));
-				}
-				const object = await env.IMAGES_BUCKET.get(imageResult.image_path);
-				if (!object) {
-					return withCors(new Response("Image not in R2: " + imageResult.image_path, { status: 404 }));
-				}
-
-				return withCors(new Response(object.body, {
-					headers: {
-						"Content-Type": "image/jpeg", // or detect from filename
-						"Cache-Control": "public, max-age=3600"
-					}
-				}));
-			} catch (error) {
-				console.error("Error fetching image from R2:", error);
-				return withCors(new Response("Error fetching image", { status: 500 }));
-			}
-		}
-
-		// Insert new image data for skin
-		/*
-		 * Example json input
-			{
-				"uuid": "0d7cd531-4b37-4437-ad0f-cb73e976026a",
-				"images": [
-					{ "stage": 1, "image_path": "redline_test1.png" },
-					{ "stage": 2, "image_path": "redline_test2.png" },
-					{ "stage": 3, "image_path": "redline_test3.png" },
-					{ "stage": 4, "image_path": "redline_test4.png" },
-					{ "stage": 5, "image_path": "redline_test5.png" }
-				]
-			}
-			* */
-		if (request.method === "POST" && url.pathname === "/api/image") {
-			try {
-				const { uuid, images } = await request.json();
-
-				if (!uuid || !Array.isArray(images)) {
-					return withCors(new Response("Invalid payload", { status: 400 }));
-				}
-
-				const skin = await env.devDB
-					.prepare("SELECT id FROM skins WHERE uuid = ?")
-					.bind(uuid)
-					.first();
-
-				if (!skin) {
-					return withCors(new Response("Skin for given uuid not found", { status: 404 }));
-				}
-
-				const stmt = await env.devDB.prepare(`
-					INSERT INTO skin_images (skin_id, stage, image_path)
-					VALUES (?, ?, ?)
-					ON CONFLICT(skin_id, stage)
-					DO UPDATE SET image_path = excluded.image_path
-				`);
-
-				for (const { stage, image_path } of images) {
-					await stmt.bind(skin.id, stage, image_path).run();
-				}
-
-				return withCors(Response.json({ message: "Images upserted successfully" }));
-			} catch (error) {
-				console.error("Error inserting/updating skin images:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
-		}
-
-		//
-
-
-
-		// 💷 Guess 🎰 the 🎰 skin 💷
-		if (url.pathname === "/api/guess/") {
-			try {
-				const { uuid, guess_input } = await request.json();
-
-				const { results } = await env.devDB.prepare(
-					"SELECT count(*) FROM skins WHERE uuid = ? AND name = ?")
-					.bind(uuid, guess_input)
-					.first();
-				return withCors(Response.json(results));
-
-			} catch (error) {
-				console.error("Error getting image by skin and stage:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
-		}
-
-		// Save player progress
-		if (request.method === "POST" && url.pathname === "/api/progress") {
-			try {
-				const { player_uuid, skin_uuid, current_stage, solved } = await request.json();
-
-				await env.devDB
-					.prepare(`
-							INSERT INTO player_progress (player_id, skin_id, current_stage, solved)
-							VALUES (
-									(SELECT id FROM players WHERE uuid = ?),
-									(SELECT id FROM skins WHERE uuid = ?),
-									?, ?
-							)
-							ON CONFLICT(player_id, skin_id)
-							DO UPDATE SET
-									current_stage = excluded.current_stage,
-									solved = excluded.correct`)
-					.bind(player_uuid, skin_uuid, current_stage, solved)
-					.run() // Use .run() for INSERT
-				return withCors(Response.json({ message: "Player progress updated" }));
-			} catch (error) {
-				console.error("Error inserting player:", error);
-				return withCors(new Response("Internal Server Error", { status: 500 }));
-			}
-		}
-
-
-		if (pathname === "/") {
-			return withCors(new Response("Worker is running! Try hitting a real /api/ endpoint."));
-		}
-
-		if (pathname === "/favicon.ico") {
-			return withCors(new Response(null, { status: 204 }));
-		}
-		return new Response(
-			JSON.stringify({ error: "Endpoint not found", path: url.pathname }),
-			{ status: 404, headers: { "Content-Type": "application/json" } }
-		);
-
+		return new Response("Not found", { status: 404 });
 	}
 };
-export {
-	index_default as default
-};
-//# sourceMappingURL=index.js.map
+
