@@ -25,7 +25,7 @@ export default {
 		// 🎮 Start game
 		if (pathname === "/api/game/start") {
 			// Try to find a skin the player hasn't started yet
-			const skinUuid = await env.devDB.prepare(`
+			const skin = await env.devDB.prepare(`
 				SELECT uuid FROM skins
 				WHERE NOT EXISTS (
 					SELECT 1 FROM player_progress
@@ -36,7 +36,7 @@ export default {
 				LIMIT 1
 			`).bind(userUuid).first();
 
-			if (!skinUuid) {
+			if (!skin) {
 				return new Response("You finished all available skins!", {
 					status: 200,
 					headers: {
@@ -44,9 +44,10 @@ export default {
 					}
 				});
 			}
-			return new Response(skinUuid, {
+			return new Response(JSON.stringify({ uuid: skin.uuid }), {
 				status: 200,
 				headers: {
+					"Content-Type": "application/json",
 					"Access-Control-Allow-Origin": "*"
 				}
 			});
@@ -61,6 +62,7 @@ export default {
 				return new Response("Missing skin UUID", { status: 400 });
 			}
 
+			//FIX: Player progress does not exist yet. Hence no current stage found.
 			const image = await env.devDB.prepare(`
 				SELECT image_path FROM skin_images
 				WHERE skin_id = (SELECT id FROM skins WHERE uuid = ?)
@@ -169,7 +171,13 @@ export default {
 
 
 		async function verifyToken(token: string) {
+			if (typeof token !== "string") {
+				return null;
+			}
 			const [uuid, hash] = token.split(".");
+			if (!uuid || !hash) {
+				return null;
+			}
 			const expected = await sha256(uuid + ":" + SECRET);
 			return expected === hash ? uuid : null;
 		}
@@ -187,19 +195,6 @@ export default {
 			const data = new TextEncoder().encode(msg);
 			const digest = await crypto.subtle.digest("SHA-256", data);
 			return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
-		}
-
-		async function verifyCookie(request: Request) {
-			// const cookies = parseCookies(request.headers.get("cookie"));
-			const encoded = cookies["progress"];
-			const hash = cookies["progress_hash"];
-			if (!encoded || !hash) return null;
-
-			const expected = await sha256(`${encoded}:${SECRET}`);
-			if (expected !== hash) return null;
-
-			const decoded = JSON.parse(atob(encoded));
-			return decoded; // { uuid, stage, solved }
 		}
 
 		return new Response("Not found", { status: 404 });

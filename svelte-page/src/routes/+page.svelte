@@ -5,14 +5,20 @@
   let guessInput = "";
   let message = "";
   let currentStage = 1;
+  let skinUuid = "invalidUuid";
 
   async function startGame() {
-    await fetch("/api/game/start", { method: "GET" });
+    const res = await fetch("/api/game/start", { method: "GET" });
+    const data = await res.json();
+    skinUuid = data.uuid;
     await loadImage();
   }
 
   async function loadImage() {
-    const res = await fetch("/api/image");
+    const params = new URLSearchParams({ skinUuid });
+    const res = await fetch(`/api/image?${params.toString()}`, {
+      method: "GET",
+    });
     const blob = await res.blob();
     imageUrl = URL.createObjectURL(blob);
   }
