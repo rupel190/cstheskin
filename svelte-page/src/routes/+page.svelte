@@ -3,8 +3,6 @@
   const API_URL = import.meta.env.VITE_API_BASE;
   console.log("API_URL from env:", API_URL);
 
-  let canvas: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D;
   let playerId = "player123"; // eventually get this from localStorage or your /api/player/new
   let imageUrl = "";
   let guessInput = "";
@@ -30,33 +28,30 @@
     // Verify result
     const data = await res.json();
     console.log("Data: ", data);
+    console.log("current stage b4: ", currentStage);
     if (await verifyGuess(data)) {
-      console.log("Correct skin guess DINGIDNGINDFGINDGIDDINGDING"); // TODO
-      switch (currentStage) {
-        case 0:
-          break;
-        case 1:
-          console.log("Win at stage 1");
-          break;
-        case 2:
-          console.log("Win at stage 2");
-          break;
-        case 3:
-          console.log("Win at stage 3");
-          break;
-        case 4:
-          console.log("Win at stage 4");
-          break;
-        case 5:
-          console.log("Win at stage 5");
-          break;
-        default:
-          break;
-      }
-    } else {
+      // Win
+      console.log("Correct skin guess DINGIDNGINDFGINDGIDDINGDING", data);
+      //TODO: show final stage solution
+    } else if (currentStage < 5) {
       currentStage++;
+      console.log("current stage af: ", currentStage);
+      // proceed
       await fetchImage();
-      //TODO: Update counter or  whatever
+    } else {
+      // Loss
+      //TODO: Update player stats or whatever
+      // show solution
+
+      //TODO: Obviously unsafe, especially as GET request. Maybe handle more of the game logic in backend later anyways.
+      const res = await fetch(
+        api("/api/skins?") +
+          new URLSearchParams({
+            uuid: currentUuid,
+          }),
+      );
+      const skin = await res.json();
+      console.log("Loss! Current skin details: ", skin, res);
     }
   }
 
@@ -66,7 +61,7 @@
       message = "🎯 Correct: " + first.name + "!";
       return true;
     } else {
-      message = "❌ Wrong. Proceeding ...";
+      message = "❌ Wrong";
       return false;
     }
   }
@@ -117,6 +112,24 @@
   <div class="border rounded shadow overflow-hidden bg-gray-100">
     <img src={imageUrl} alt="mystery skin" class="w-full" />
     <!-- <canvas bind:this={canvas} class="w-full max-h-[200px]"></canvas> -->
+  </div>
+
+  <div class="flex justify-center space-x-2 mt-4">
+    {#each Array(5)
+      .fill(0)
+      .map((_, i) => i + 1) as stage}
+      <div
+        class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
+              border-2 transition-all duration-200"
+        class:bg-blue-600={currentStage === stage}
+        class:text-white={currentStage === stage}
+        class:border-blue-600={currentStage === stage}
+        class:bg-gray-100={currentStage !== stage}
+        class:text-gray-800={currentStage !== stage}
+      >
+        {stage}
+      </div>
+    {/each}
   </div>
 
   <input

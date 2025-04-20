@@ -93,6 +93,7 @@ var index_default = {
 				const uuid = searchParams.get("uuid");
 				const query = await env.devDB.prepare("SELECT * FROM skins WHERE uuid = ?").bind(uuid);
 				const { results } = await query.all();
+				console.log("fetched skin: ", results);
 				return withCors(Response.json(results));
 			} catch (error) {
 				console.error("Error executing query:", error);
@@ -228,7 +229,7 @@ var index_default = {
 					.first();
 
 				if (!skin) {
-					return withCors(new Response("Skin not found", { status: 404 }));
+					return withCors(new Response("Skin for given uuid not found", { status: 404 }));
 				}
 
 				const stmt = await env.devDB.prepare(`
