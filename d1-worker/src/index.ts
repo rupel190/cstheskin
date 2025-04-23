@@ -5,15 +5,20 @@ export default {
 		const url = new URL(request.url);
 		const { pathname } = url;
 
-		const cookies = parseCookies(request.headers.get("cookie"));
+		const _cookies = parseCookies(request.headers.get("cookie"));
 
-		let userToken = cookies["user"];
-		if (!userToken) {
-			userToken = await initUser();
+		let _userToken = _cookies["user"];
+		let _playerUuid: string = "invalid_uuid";
+
+		if (!_userToken) {
+			_playerUuid = await createPlayer();
+			await initPlayer(_playerUuid);
+			_userToken = await generateUserToken(_playerUuid);
+		} else {
+			_playerUuid = await verifyToken(_userToken);
 		}
 
-		const playerUuid = await verifyToken(userToken);
-		if (!playerUuid) {
+		if (!_playerUuid) {
 			// Invalid user
 			return new Response("Unverifiable user ID. Delete cookie.", {
 				status: 402,
@@ -26,26 +31,27 @@ export default {
 
 		// 🎮 Start game: Return skin and cookie
 		if (pathname === "/api/game/start") {
-
-			const skin = await nextUnprogressedSkin()
-			if (!skin) {
+			try {
+				const skin = await nextUnprogressedSkin(_playerUuid)
+				// Return skin
+				return new Response(JSON.stringify({ uuid: skin.uuid }), {
+					status: 200,
+					headers: {
+						"Content-Type": "application/json",
+						"Set-Cookie": `user=${_userToken}; Path=/; HttpOnly`,
+						"Access-Control-Allow-Origin": "*"
+					}
+				});
+			} catch (err) {
+				console.error(err);
 				return new Response("No unprogressed skins found!", {
 					status: 402,
 					headers: {
 						"Access-Control-Allow-Origin": "*",
-						"Set-Cookie": `user=${userToken}; Path=/; HttpOnly`,
+						"Set-Cookie": `user=${_userToken}; Path=/; HttpOnly`,
 					}
 				});
 			}
-			// Return skin
-			return new Response(JSON.stringify({ uuid: skin.uuid }), {
-				status: 200,
-				headers: {
-					"Content-Type": "application/json",
-					"Set-Cookie": `user=${userToken}; Path=/; HttpOnly`,
-					"Access-Control-Allow-Origin": "*"
-				}
-			});
 		}
 
 
@@ -58,20 +64,32 @@ export default {
 				return new Response("Missing skin UUID parameter.", { status: 400 });
 			}
 
-			const skinId = await fetchSkinId(skinUuid)
-			const playerId = await fetchPlayerId()
+			try {
+				const skinId = await fetchSkinId(skinUuid)
+				const playerId = await fetchPlayerId(_playerUuid)
 
-			const image = await fetchImage(playerId, skinId);
-			const file = await env.IMAGES_BUCKET.get(image.image_path);
-			if (!file) {
-				return new Response("Image file not in R2", { status: 404 });
-			}
-			return new Response(file.body, {
-				headers: {
-					"Content-Type": "image/jpeg",
-					"Access-Control-Allow-Origin": "*"
+				const image = await fetchImage(playerId, skinId);
+				const file = await env.IMAGES_BUCKET.get(image.image_path);
+				if (!file) {
+					return new Response("Image file not in R2", { status: 404 });
 				}
-			});
+				return new Response(file.body, {
+					headers: {
+						"Content-Type": "image/jpeg",
+						"Access-Control-Allow-Origin": "*"
+					}
+				});
+			} catch (err) {
+				console.error(err);
+				return new Response("Error fetching image.", {
+					status: 402,
+					headers: {
+						"Content-Type": "image/jpeg",
+						"Access-Control-Allow-Origin": "*"
+					}
+				});
+
+			}
 		}
 
 
@@ -85,72 +103,79 @@ export default {
 			if (!skinUuid || !guess) {
 				return new Response("Missing parameters", { status: 400 });
 			}
-			// Fetch skin
-			const skin = await env.devDB
-				.prepare("SELECT id, name FROM skins WHERE uuid = ?")
-				.bind(skinUuid)
-				.first();
-			if (!skin) {
-				return new Response("Skin not found", { status: 404 });
-			}
-			// Fetch current stage
-			const stageRes = await fetchStage(skin.id)
 
-			// Handle guess
-			//TODO: fuzzy
-			const currentStage = stageRes?.current_stage ?? 1;
-			const solved = skin.name.toLowerCase() === guess.toLowerCase();
-			const gameOver = solved || (!solved && currentStage === maxStage);
-
-			await insertPlayerProgress(skinUuid, Math.min(currentStage + 1, maxStage).toString(), solved)
-
-			return new Response(JSON.stringify({ currentStage, solved, gameOver }), {
-				headers: {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*"
+			try {
+				// Fetch skin
+				const skin = await env.devDB
+					.prepare("SELECT id, name FROM skins WHERE uuid = ?")
+					.bind(skinUuid)
+					.first();
+				if (!skin) {
+					return new Response("Skin not found", { status: 404 });
 				}
-			});
+				// Fetch current stage
+				const stageRes = await fetchStage(_playerUuid, skin.id)
+
+				// Handle guess
+				//TODO: fuzzy
+				const currentStage = stageRes?.current_stage ?? 1;
+				const solved = skin.name.toLowerCase() === guess.toLowerCase();
+				const gameOver = solved || (!solved && currentStage === maxStage);
+
+				await insertPlayerProgress(_playerUuid, skinUuid, Math.min(currentStage + 1, maxStage).toString(), solved)
+
+				return new Response(JSON.stringify({ currentStage, solved, gameOver }), {
+					headers: {
+						"Content-Type": "application/json",
+						"Access-Control-Allow-Origin": "*"
+					}
+				});
+
+			} catch (err) {
+				console.error(err);
+				return new Response("Error in handling guess!", {
+
+					status: 402,
+					headers: {
+						"Content-Type": "application/json",
+						"Access-Control-Allow-Origin": "*"
+					}
+				});
+			}
 		}
 
 
 
 		// 🎮 New user: Initialize player and return cookie value
-		async function initUser() {
-			const uuid = crypto.randomUUID();
-			const token = await generateUserToken(uuid);
+		async function createPlayer() {
+			const uuid = crypto.randomUUID()
 			await insertPlayer(uuid);
+			return uuid;
+		}
 
+		async function initPlayer(playerUuid: string) {
 			const stage = "1";
-			const skin = await nextUnprogressedSkin()
-			await insertPlayerProgress(skin.id, stage, false);
-
-			return token;
+			const skin = await nextUnprogressedSkin(playerUuid)
+			await insertPlayerProgress(playerUuid, skin.id, stage, false);
 		}
 
-		async function insertPlayer(uuid: string) {
-			try {
-				await env.devDB.prepare(`
+		async function insertPlayer(playerUuid: string) {
+			await env.devDB.prepare(`
 					INSERT INTO players(uuid) VALUES(?)
-				`).bind(uuid).run();
-				// return new Response("Player created", { status: 201 });
-				console.log("Player created");
-			} catch (err) {
-				console.error("Error inserting player:", err);
-				console.error("Player already exists", { status: 409 }); // 409 Conflict
-			}
+				`).bind(playerUuid).run();
 		}
 
-		async function insertPlayerProgress(skinUuid: string, stage: string, solved: boolean) {
+		async function insertPlayerProgress(playerUuid: string, skinUuid: string, stage: string, solved: boolean) {
 			await env.devDB.prepare(`
 					INSERT INTO player_progress (player_id, skin_id, current_stage, solved)
 					VALUES(?, ?, ?, ?)
 						ON CONFLICT(player_id, skin_id) DO UPDATE SET
 							current_stage = excluded.current_stage,
 							solved = excluded.solved
-				`).bind(fetchPlayerId(), fetchSkinId(skinUuid), stage, solved).run();
+				`).bind(await fetchPlayerId(playerUuid), await fetchSkinId(skinUuid), stage, solved).run();
 		}
 
-		async function nextUnprogressedSkin() {
+		async function nextUnprogressedSkin(playerUuid: string) {
 			return await env.devDB.prepare(`
 				SELECT id, uuid, name FROM skins
 				WHERE NOT EXISTS (
@@ -163,29 +188,21 @@ export default {
 			`).bind(playerUuid).first();
 		}
 
-		async function fetchPlayerId() {
-			const playerId = await env.devDB.prepare(`SELECT id FROM players WHERE uuid = ?`).bind(playerUuid).first()
-			if (!playerId) {
-				return new Response("Skin UUID could not be resolved.", {
-					status: 400,
-					headers: {
-						"Access-Control-Allow-Origin": "*"
-					}
-				});
+		async function fetchPlayerId(playerUuid: string) {
+			const player = await env.devDB.prepare(`SELECT id FROM players WHERE uuid = ?`).bind(playerUuid).first()
+			if (!player.id) {
+				throw new Error("Player for " + playerUuid + " not found.");
 			}
-			return playerId;
+			return player.id;
 		}
+
+
 		async function fetchSkinId(skinUuid: string) {
-			const skinId = await env.devDB.prepare(`SELECT id FROM skins WHERE uuid = ?`).bind(skinUuid).first()
-			if (!skinId) {
-				return new Response("User UUID could not be resolved.", {
-					status: 400,
-					headers: {
-						"Access-Control-Allow-Origin": "*"
-					}
-				});
+			const skin = await env.devDB.prepare(`SELECT id FROM skins WHERE uuid = ?`).bind(skinUuid).first()
+			if (!skin?.id) {
+				throw new Error("Skin for " + skinUuid + " not found.");
 			}
-			return skinId;
+			return skin.id;
 		}
 
 		async function fetchImage(playerId: string, skinId: string) {
@@ -200,33 +217,32 @@ export default {
 				)
 			`).bind(skinId, playerId, skinId).first();
 			if (!image) {
-				return new Response("Image for player not found", { status: 404 });
+				throw new Error("Image for " + skinId + " not found.");
 			}
 			return image;
 		}
 
-		async function fetchStage(skinId: string) {
+		async function fetchStage(playerUuid: string, skinId: string) {
 			return await env.devDB
 				.prepare("SELECT current_stage FROM player_progress WHERE player_id = ? AND skin_id = ?")
-				.bind(await fetchPlayerId(), skinId)
-				.first();
+				.bind(await fetchPlayerId(playerUuid), skinId).first();
 		}
 
 		async function verifyToken(token: string) {
 			if (typeof token !== "string") {
-				return null;
+				return "invalid_token";
 			}
 			const [uuid, hash] = token.split(".");
 			if (!uuid || !hash) {
-				return null;
+				return "invalid_token";
 			}
 			const expected = await sha256(uuid + ":" + SECRET);
-			return expected === hash ? uuid : null;
+			return expected === hash ? uuid : "invalid_token";
 		}
 
-		async function generateUserToken(uuid: string) {
-			const hash = await sha256(uuid + ":" + SECRET);
-			return `${uuid}.${hash}`;
+		async function generateUserToken(playerUuid: string) {
+			const hash = await sha256(playerUuid + ":" + SECRET);
+			return `${playerUuid}.${hash}`;
 		}
 
 		function parseCookies(header: string | null) {
