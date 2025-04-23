@@ -80,47 +80,31 @@ export default {
 			const url = new URL(request.url);
 			const skinUuid = url.searchParams.get("skinUuid");
 			const guess = url.searchParams.get("guess");
+			const maxStage = 5;
 
 			if (!skinUuid || !guess) {
 				return new Response("Missing parameters", { status: 400 });
 			}
-			let skin = await env.devDB
+			// Fetch skin
+			const skin = await env.devDB
 				.prepare("SELECT id, name FROM skins WHERE uuid = ?")
 				.bind(skinUuid)
 				.first();
 			if (!skin) {
 				return new Response("Skin not found", { status: 404 });
 			}
+			// Fetch current stage
+			const stageRes = await fetchStage(skin.id)
 
-			// Fetch current or next stage
-			const stage = await env.devDB
-				.prepare("SELECT current_stage FROM player_progress WHERE player_id = ? AND skin_id = ?")
-				.bind(fetchPlayerId(), skin.id)
-				.first();
-
-			//TODO: Fix skin/level switching
-			if (stage >= 6) {
-				skin = nextUnprogressedSkin()
-			}
-
-			// Set solved or increment stage
+			// Handle guess
 			//TODO: fuzzy
+			const currentStage = stageRes?.current_stage ?? 1;
 			const solved = skin.name.toLowerCase() === guess.toLowerCase();
+			const gameOver = solved || (!solved && currentStage === maxStage);
 
-			await env.devDB.prepare(`
-				INSERT INTO player_progress (player_id, skin_id, current_stage, solved)
-				VALUES (?, ?, ?, ?)
-				ON CONFLICT(player_id, skin_id) DO UPDATE SET
-					current_stage = excluded.current_stage,
-					solved = excluded.solved
-			`).bind(
-				fetchPlayerId(),
-				skin.id,
-				solved ? stage : Math.min(stage + 1, 5),
-				solved
-			).run();
+			await insertPlayerProgress(skinUuid, Math.min(currentStage + 1, maxStage).toString(), solved)
 
-			return new Response(JSON.stringify({ stage, solved }), {
+			return new Response(JSON.stringify({ currentStage, solved, gameOver }), {
 				headers: {
 					"Content-Type": "application/json",
 					"Access-Control-Allow-Origin": "*"
@@ -160,6 +144,9 @@ export default {
 			await env.devDB.prepare(`
 					INSERT INTO player_progress (player_id, skin_id, current_stage, solved)
 					VALUES(?, ?, ?, ?)
+						ON CONFLICT(player_id, skin_id) DO UPDATE SET
+							current_stage = excluded.current_stage,
+							solved = excluded.solved
 				`).bind(fetchPlayerId(), fetchSkinId(skinUuid), stage, solved).run();
 		}
 
@@ -216,6 +203,13 @@ export default {
 				return new Response("Image for player not found", { status: 404 });
 			}
 			return image;
+		}
+
+		async function fetchStage(skinId: string) {
+			return await env.devDB
+				.prepare("SELECT current_stage FROM player_progress WHERE player_id = ? AND skin_id = ?")
+				.bind(await fetchPlayerId(), skinId)
+				.first();
 		}
 
 		async function verifyToken(token: string) {
