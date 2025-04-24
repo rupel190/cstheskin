@@ -1,0 +1,240 @@
+[
+  {
+    "name": "AWP | Printstream",
+    "link": "https://stash.clash.gg/skin/1691/AWP-Printstream",
+    "description": "It has been custom painted with a stark black and white design and finished with pearlescent highlights.",
+    "flavorText": "WHITE_1; BLACK_1; PEARLESCENT_1; BOLTACTION_1;",
+    "rarity": "Covert Sniper Rifle",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "88,47€",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "FAMAS | Bad Trip",
+    "link": "https://stash.clash.gg/skin/1690/FAMAS-Bad-Trip",
+    "description": "It has been custom painted with brightly colored monsters.",
+    "flavorText": "When you've had too much",
+    "rarity": "Covert Rifle",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "8,30€",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "4,--€",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "Glock-18 | Shinobu",
+    "link": "https://stash.clash.gg/skin/1688/Glock-18-Shinobu",
+    "description": "It has been custom painted with a woman on the slide wearing SR Tech \"Premium\" contact lenses.",
+    "flavorText": "\"SR Tech—helping you stay focused one engagement at a time\"",
+    "rarity": "Classified Pistol",
+    "prices": {
+      "Factory New": "41,50€",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "7,82€"
+    }
+  },
+  {
+    "name": "UMP-45 | K.O. Factory",
+    "link": "https://stash.clash.gg/skin/1689/UMP-45-KO-Factory",
+    "description": "This custom paint job is inspired by old animation cartoons.",
+    "flavorText": "Swing and a miss!",
+    "rarity": "Classified SMG",
+    "prices": {
+      "Factory New": "28,37€",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "6,69€",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "AK-47 | Searing Rage",
+    "link": "https://stash.clash.gg/skin/1687/AK-47-Searing-Rage",
+    "description": null,
+    "flavorText": null,
+    "rarity": "Classified Rifle",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "6,41€",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "Desert Eagle | Serpent Strike",
+    "link": "https://stash.clash.gg/skin/1682/Desert-Eagle-Serpent-Strike",
+    "description": "It has been custom painted with an orange and red snakeskin pattern.",
+    "flavorText": "Serpentine!",
+    "rarity": "Restricted Pistol",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "1,87€",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "Zeus x27 | Tosai",
+    "link": "https://stash.clash.gg/skin/1683/Zeus-x27-Tosai",
+    "description": "It has been custom painted with a young koi fish, also called a tosai.",
+    "flavorText": "Wishing you good fortune",
+    "rarity": "Restricted Equipment",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "1,79€",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "0,83€",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "Nova | Rising Sun",
+    "link": "https://stash.clash.gg/skin/1684/Nova-Rising-Sun",
+    "description": "It has been custom painted to resemble a stained glass Japanese motif.",
+    "flavorText": "Wait 'til you see it in the sun - Imogen, Arms Dealer In Training",
+    "rarity": "Restricted Shotgun",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "1,67€",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "0,75€",
+      "Battle-Scarred": "0,74€"
+    }
+  },
+  {
+    "name": "P90 | Wave Breaker",
+    "link": "https://stash.clash.gg/skin/1686/P90-Wave-Breaker",
+    "description": "It has been custom painted using an angular blue and green design.",
+    "flavorText": "You look how you feel",
+    "rarity": "Restricted SMG",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "0,78€",
+      "Well-Worn": "0,66€",
+      "Battle-Scarred": "0,83€"
+    }
+  },
+  {
+    "name": "Galil AR | Control",
+    "link": "https://stash.clash.gg/skin/1685/Galil-AR-Control",
+    "description": "It has been custom painted using grey, yellow, and red and takes inspiration from racing liveries.",
+    "flavorText": "Now available with all-wheel drive",
+    "rarity": "Restricted Rifle",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "USP-S | PC-GRN",
+    "link": "https://stash.clash.gg/skin/1679/USP-S-PC-GRN",
+    "description": "It has been custom painted with a minty green and silver-colored design.",
+    "flavorText": "The Glass of Fate is half-full",
+    "rarity": "Mil-Spec Pistol",
+    "prices": {
+      "Factory New": "1,28€",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "XM1014 | Mockingbird",
+    "link": "https://stash.clash.gg/skin/1681/XM1014-Mockingbird",
+    "description": "A silver and gold design depicting birds in flight has been custom painted on the receiver.",
+    "flavorText": "Time spent with birds is never wasted",
+    "rarity": "Mil-Spec Shotgun",
+    "prices": {
+      "Factory New": "0,45€",
+      "Minimal Wear": "0,16€",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "P2000 | Sure Grip",
+    "link": "https://stash.clash.gg/skin/1678/P2000-Sure-Grip",
+    "description": "It has been custom painted in gunmetal grey using fractal designs and finished with orange accents.",
+    "flavorText": ">>WEAPON FINISH TEXTURE EXPERIMENTS, ENTRY ONE<<",
+    "rarity": "Mil-Spec Pistol",
+    "prices": {
+      "Factory New": "0,43€",
+      "Minimal Wear": "0,16€",
+      "Field-Tested": "0,09€",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "MAG-7 | Resupply",
+    "link": "https://stash.clash.gg/skin/1676/MAG-7-Resupply",
+    "description": "It has been custom painted to resemble an ammunition box.",
+    "flavorText": "Keep the receipt",
+    "rarity": "Mil-Spec Shotgun",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "0,09€",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "M4A4 | Choppa",
+    "link": "https://stash.clash.gg/skin/1675/M4A4-Choppa",
+    "description": "It has been custom painted using a green camo pattern.",
+    "flavorText": "Increase your digital footprint",
+    "rarity": "Mil-Spec Rifle",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "0,08€",
+      "Battle-Scarred": "0,07€"
+    }
+  },
+  {
+    "name": "MP9 | Nexus",
+    "link": "https://stash.clash.gg/skin/1680/MP9-Nexus",
+    "description": "It has been custom painted in silver, black, and blue with contemporary designs inlaid in the silver paint.",
+    "flavorText": "A personal, yet understated touch",
+    "rarity": "Mil-Spec SMG",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  },
+  {
+    "name": "SSG 08 | Memorial",
+    "link": "https://stash.clash.gg/skin/1677/SSG-08-Memorial",
+    "description": "This custom paint job depicts bronze engravings and is inspired by the concrete efficiency of brutalist architecture.",
+    "flavorText": "May your sacrifice not be in vain",
+    "rarity": "Mil-Spec Sniper Rifle",
+    "prices": {
+      "Factory New": "No Recent Price",
+      "Minimal Wear": "No Recent Price",
+      "Field-Tested": "No Recent Price",
+      "Well-Worn": "No Recent Price",
+      "Battle-Scarred": "No Recent Price"
+    }
+  }
+]
