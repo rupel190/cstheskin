@@ -64,13 +64,17 @@ export default {
 
 			const skinUuid = url.searchParams.get("skinUuid");
 			const requestedStage = url.searchParams.get("stage");
+
 			if (!skinUuid || !requestedStage) {
 				return new Response("Missing skin UUID or stage parameter.", { status: 400 });
 			}
 
 			try {
 				const skin = await fetchSkin(skinUuid)
+				// Avoid insecure direct object access
 				const progress = await fetchCurrentProgress(_playerId, skin.id);
+				console.log("Current progress: ", progress?.current_stage, requestedStage);
+
 				if (requestedStage > progress?.current_stage) {
 					return new Response("Requested stage higher than current stage.", {
 						status: 403,
@@ -110,7 +114,6 @@ export default {
 			const url = new URL(request.url);
 			const skinUuid = url.searchParams.get("skinUuid");
 			const guess = url.searchParams.get("guess");
-			// const maxStage = 5;
 
 			if (!skinUuid || !guess) {
 				return new Response("Missing parameters", {
@@ -123,7 +126,7 @@ export default {
 				const skin = await fetchSkin(skinUuid)
 				//TODO: fuzzy
 				const progress = await fetchCurrentProgress(_playerId, skin.id)
-				const stage = progress?.current_stage ?? 1;
+				let stage = progress.current_stage
 				console.log("Guessing for stage: ", stage);
 
 				if (progress.solved || stage > 5) {
@@ -136,10 +139,10 @@ export default {
 					await insertPlayerProgress(_playerId, skin.id, stage, solved);
 				} else {
 					console.log("Unsolved! Increment current stage and insert progress as playerId: ", _playerId, "skinId:", skin.id, "currentStage: ", stage + 1, " solved: ", solved);
-					await insertPlayerProgress(_playerId, skin.id, stage + 1, solved);
+					stage += 1
+					await insertPlayerProgress(_playerId, skin.id, stage, solved);
 				}
-
-				return new Response(JSON.stringify({ stage, solved }), {
+				return new Response(JSON.stringify({ stage: stage, solved }), {
 					headers: {
 						"Content-Type": "application/json",
 						"Access-Control-Allow-Origin": "*"
@@ -167,13 +170,6 @@ export default {
 			return uuid;
 		}
 
-		// async function initPlayer(playerId: string) {
-		// 	const stage = "1";
-		// 	const skin = await nextUnprogressedSkin(playerId)
-		//
-		// 	await insertPlayerProgress(playerId, skin.id, stage, false);
-		// }
-
 		async function insertPlayer(playerUuid: string) {
 			await env.devDB.prepare(`
 					INSERT INTO players(uuid) VALUES(?)
@@ -188,7 +184,7 @@ export default {
 							current_stage = excluded.current_stage,
 							solved = excluded.solved
 				`).bind(playerId, skinId, stage, solved).run();
-			console.log("Insert initial player progress: ", playerId, skinId, stage, solved);
+			console.log("Insert initial player progress, playerId:", playerId, " skinId:", skinId, " stage:", stage, "solved:", solved);
 		}
 
 		async function nextUnprogressedSkin(playerId: string) {
@@ -222,7 +218,6 @@ export default {
 			return skin;
 		}
 
-		//TODO: fetchImage should just take a skinId and a stage!!
 		async function fetchImage(skinId: string, stage: string) {
 			const image = await env.devDB.prepare(`
 		  	SELECT image_path
@@ -236,12 +231,15 @@ export default {
 		}
 
 		async function fetchCurrentProgress(playerId: string, skinId: string) {
-			const progress = await env.devDB
+			let progress = await env.devDB
 				.prepare("SELECT current_stage, solved FROM player_progress WHERE player_id = ? AND skin_id = ? ORDER BY current_stage DESC")
 				.bind(playerId, skinId).first();
-			// if (!progress) {
-			// 	throw new Error("Progress for " + playerId + " and " + skinId + " not found.");
-			// }
+			if (!progress) {
+				console.error("Progress for playerId " + playerId + " and skinId " + skinId + " not found - defaulting to stage 1 and unsolved.");
+				progress = { current_stage: 1, solved: false };
+			} else {
+				progress.current_stage = Number(progress.current_stage);
+			}
 			return progress;
 		}
 
