@@ -63,16 +63,25 @@ export default {
 			const url = new URL(request.url);
 
 			const skinUuid = url.searchParams.get("skinUuid");
-			if (!skinUuid) {
-				return new Response("Missing skin UUID parameter.", { status: 400 });
+			const requestedStage = url.searchParams.get("stage");
+			if (!skinUuid || !requestedStage) {
+				return new Response("Missing skin UUID or stage parameter.", { status: 400 });
 			}
 
 			try {
 				const skin = await fetchSkin(skinUuid)
-				console.log('fetch skin: ', skin);
-				console.log("ERROR: ", _playerId, skin.id);
-				const image = await fetchImage(_playerId, skin.id);
-				console.log('fetch img: ', image);
+				const progress = await fetchCurrentProgress(_playerId, skin.id);
+				if (requestedStage > progress?.current_stage) {
+					return new Response("Requested stage higher than current stage.", {
+						status: 403,
+						headers: {
+							"Content-Type": "image/jpeg",
+							"Access-Control-Allow-Origin": "*"
+						}
+					});
+				}
+
+				const image = await fetchImage(skin.id, requestedStage);
 				const file = await env.IMAGES_BUCKET.get(image.image_path);
 				if (!file) {
 					return new Response("Image file not in R2", { status: 404 });
@@ -84,7 +93,7 @@ export default {
 					}
 				});
 			} catch (err) {
-				console.error(err);
+				console.error("Error fetching image: ", err);
 				return new Response("Error fetching image.", {
 					status: 500,
 					headers: {
@@ -92,7 +101,6 @@ export default {
 						"Access-Control-Allow-Origin": "*"
 					}
 				});
-
 			}
 		}
 
@@ -215,11 +223,9 @@ export default {
 		}
 
 		//TODO: fetchImage should just take a skinId and a stage!!
-		async function fetchImage(playerId: string, skinId: string) {
-			const progress = await fetchCurrentProgress(playerId, skinId);
-			const stage = progress?.current_stage;
+		async function fetchImage(skinId: string, stage: string) {
 			const image = await env.devDB.prepare(`
-		  	SELECT stage, image_path
+		  	SELECT image_path
 				FROM skin_images
 				WHERE skin_id = ? AND stage = ?
 			`).bind(skinId, stage).first();

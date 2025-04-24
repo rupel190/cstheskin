@@ -15,7 +15,10 @@
   }
 
   async function loadImage() {
-    const params = new URLSearchParams({ skinUuid });
+    const params = new URLSearchParams({
+      skinUuid,
+      stage: currentStage.toString(),
+    });
     const res = await fetch(`/api/image?${params.toString()}`, {
       method: "GET",
     });
