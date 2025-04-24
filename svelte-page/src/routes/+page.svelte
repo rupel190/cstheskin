@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
 
   let imageUrl = "";
-  let guessInput = "";
+  let guess = "";
   let message = "";
   let currentStage = 1;
   let skinUuid = "invalidUuid";
@@ -24,18 +24,17 @@
   }
 
   async function submitGuess() {
-    const res = await fetch("/api/guess", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guess: guessInput }),
+    const params = new URLSearchParams({ skinUuid, guess });
+    const res = await fetch(`/api/guess?${params.toString()}`, {
+      method: "GET",
     });
-
     const result = await res.json();
-    if (result.correct) {
-      message = "🎯 Correct!";
+
+    if (result.solved) {
+      message = "🎯 Correct! ->" + result.gameOver;
     } else {
-      currentStage = result.stage;
-      message = "❌ Wrong. Showing next stage...";
+      currentStage = result.currentStage;
+      message = "❌ Wrong... ->" + result.gameOver;
       await loadImage();
     }
   }
@@ -49,7 +48,7 @@
   <h1 class="text-2xl font-bold">Guess the CS Skin</h1>
   <img src={imageUrl} alt="CS skin" class="w-full rounded shadow" />
   <input
-    bind:value={guessInput}
+    bind:value={guess}
     placeholder="Your guess..."
     class="w-full px-4 py-2 border rounded"
   />
