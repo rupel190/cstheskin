@@ -83,16 +83,17 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
 
   // Extract imgUrls
   const imgUrl = await page.evaluate(() => {
-    let link = "";
+    // First try to get the sideview image URL
+    // const sideviewAnchor = document.querySelector("div.well.result-box.nomargin a.image-popup-vertical-fit.misc-click");
+    // if (sideviewAnchor && sideviewAnchor.getAttribute("href")) {
+    //   console.log("!!!! ", sideviewAnchor.getAttribute("href"));
+    //   return sideviewAnchor.getAttribute("href");
+    // }
+    // Fallback to perspective view image
+    const perspectiveImg = document.querySelector("div.well.result-box.nomargin img.img-responsive.center-block.main-skin-img");
 
-    const selectorSideview = "div.well.result-box.nomargin a.image-popup-vertical-fit.misc-click"
-    link = document.querySelector(selectorSideview)?.getAttribute("href") || "";
-    if (!link) {
-      // Fallback
-      const selectorPerspective = "div.well.result-box.nomargin img.img-responsive.center-block.main-skin-img"
-      link = document.querySelector(selectorPerspective)?.getAttribute("href") || "";
-    }
-    return link;
+    console.log(perspectiveImg?.getAttribute("src"));
+    return perspectiveImg ? perspectiveImg.getAttribute("src") : null;
   });
 
   // Extract rarity
@@ -131,6 +132,7 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
   // Launch a headless browser
   const browser = await puppeteer.launch();
   const url = 'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case';
+  const outputFileName = url.split('/').pop();
 
   try {
     // Get all cards
@@ -158,9 +160,9 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
 
         allSkinDetails.push(skinData);
 
-        const imgName = card.name.replace(" ", "_");
-        const imgPath = `images/${imgName}.png`;        // Take a screenshot of the skin image
-        await downloadSkinImage(browser, card.link, ``);
+        const imgName = card.name.replace(/ /g, '_');
+        const imgPath = `./images/${imgName}.png`;        // Take a screenshot of the skin image
+        await downloadSkinImage(browser, card.link, imgPath);
         skinData.localImagePath = imgPath;
 
         console.log(`Successfully processed: ${card.name}`);
@@ -171,7 +173,7 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
     }
 
     // Save all data to a JSON file
-    const fileName = `fever-case-skins-${new Date().toISOString().slice(0, 10)}.json`;
+    const fileName = `${outputFileName}-${new Date().toISOString().slice(0, 10)}.json`;
     await fs.writeFile(fileName, JSON.stringify(allSkinDetails, null, 2));
     console.log(`Successfully saved ${allSkinDetails.length} skin details to ${fileName}`);
 

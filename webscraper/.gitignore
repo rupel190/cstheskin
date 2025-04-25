@@ -17,4 +17,5 @@ build/
 
 # Debug files
 debug.png
+images/
 *.log
