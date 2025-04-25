@@ -2,6 +2,8 @@ import { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import fs from 'fs/promises';
+import fetch from 'node-fetch';
+import path from 'path';
 
 puppeteer.use(StealthPlugin());
 
@@ -28,13 +30,46 @@ async function scrapeUrl(browser: Browser, url: string) {
   return cards;
 }
 
+async function downloadSkinImage(browser: Browser, url: string, outputPath: string) {
+  try {
+    // Make sure the directory exists
+    const directory = path.dirname(outputPath);
+    await fs.mkdir(directory, { recursive: true });
+
+    // Open a new page
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    // Wait for the image to load
+    const imgSelector = "div.well.result-box.nomargin img.img-responsive.center-block.main-skin-img";
+    await page.waitForSelector(imgSelector);
+
+    // Get the image element and take a screenshot of just that element
+    const imageElement = await page.$(imgSelector);
+    if (imageElement) {
+      await imageElement.screenshot({
+        path: outputPath,
+        type: 'png',
+        omitBackground: true
+      });
+      console.log(`Saved skin image to ${outputPath}`);
+    } else {
+      console.log(`Image element not found for ${url}`);
+    }
+
+    // Close the page
+    await page.close();
+  } catch (error) {
+    console.error(`Error capturing skin image from ${url}:`, error);
+  }
+}
 
 async function scrapeSkinDetails(browser: Browser, url: string) {
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: 'networkidle2' });
   console.log("Opening page:", url);
 
-  // Extract text by label
+  // Extract text by label TODO: make generic to include Finish Style, Flavor Text, ...
   const description = await page.evaluate(() => {
     const rows = document.querySelectorAll(".skin-misc-details p");
     for (const row of rows) {
@@ -46,16 +81,18 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
     return null;
   });
 
-  // Extract flavor text
-  const flavorText = await page.evaluate(() => {
-    const rows = document.querySelectorAll(".skin-misc-details p");
-    for (const row of rows) {
-      const strong = row.querySelector("strong");
-      if (strong && strong.textContent && strong.textContent.includes("Flavor Text")) {
-        return row.textContent ? row.textContent.replace(strong.textContent, "").trim() || null : null;
-      }
+  // Extract imgUrls
+  const imgUrl = await page.evaluate(() => {
+    let link = "";
+
+    const selectorSideview = "div.well.result-box.nomargin a.image-popup-vertical-fit.misc-click"
+    link = document.querySelector(selectorSideview)?.getAttribute("href") || "";
+    if (!link) {
+      // Fallback
+      const selectorPerspective = "div.well.result-box.nomargin img.img-responsive.center-block.main-skin-img"
+      link = document.querySelector(selectorPerspective)?.getAttribute("href") || "";
     }
-    return null;
+    return link;
   });
 
   // Extract rarity
@@ -79,26 +116,21 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
     return result;
   });
 
-  // // Extract float range
-  // const floatRange = await page.evaluate(() => {
-  //   const el = document.querySelector(".range-display > span");
-  //   return el && el.textContent ? el.textContent.trim() : null;
-  // });
-
   // Combine all data
   return {
     description,
-    flavorText,
+    // flavorText,
     rarity,
     // floatRange,
-    prices
+    prices,
+    imgUrl
   };
 }
 
 (async () => {
   // Launch a headless browser
   const browser = await puppeteer.launch();
-  const url = 'https://stash.clash.gg/case/422/Fever-Case';
+  const url = 'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case';
 
   try {
     // Get all cards
@@ -120,10 +152,17 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
         const skinData = {
           name: card.name,
           link: card.link,
+          localImagePath: "",
           ...details
         };
 
         allSkinDetails.push(skinData);
+
+        const imgName = card.name.replace(" ", "_");
+        const imgPath = `images/${imgName}.png`;        // Take a screenshot of the skin image
+        await downloadSkinImage(browser, card.link, ``);
+        skinData.localImagePath = imgPath;
+
         console.log(`Successfully processed: ${card.name}`);
       } catch (error) {
         console.error(`Error processing ${card.name}: ${error}`);
@@ -144,3 +183,5 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
     console.log('Browser closed');
   }
 })();
+
+
