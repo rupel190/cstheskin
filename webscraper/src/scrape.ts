@@ -131,7 +131,12 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
 (async () => {
   // Launch a headless browser
   const browser = await puppeteer.launch();
-  const url = 'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case';
+  // const url = 'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case';
+  const url = 'https://stash.clash.gg/case/307/Fracture-Case';
+  // const url = 'https://stash.clash.gg/case/355/Recoil-Case';
+  // const url = 'https://stash.clash.gg/case/376/Revolution-Case';
+  // const url = 'https://stash.clash.gg/case/38/Chroma-Case';
+  // const url = 'https://stash.clash.gg/case/48/Chroma-2-Case';
   const outputFileName = url.split('/').pop();
 
   try {
