@@ -2,6 +2,8 @@ import { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import fs from 'fs/promises';
+import { scrapeSkinDetails } from './scrapeDetails';
+import { ScrapeImages } from './scrapeImages';
 import fetch from 'node-fetch';
 import path from 'path';
 
@@ -9,17 +11,13 @@ puppeteer.use(StealthPlugin());
 
 async function scrapeUrl(browser: Browser, url: string) {
   const page = await browser.newPage();
-  // Navigate to the URL
   await page.goto(url, { waitUntil: 'networkidle2' });
-
   await page.screenshot({ path: "debug.png" });
 
-  // Wait for a specific element to be loaded
   const cardSelector = "div.col-lg-4.col-md-6.col-widen.text-center";
-  // console.log(await page.content());
   await page.waitForSelector(cardSelector);
 
-  // Scrape the content
+  // Fetch all skin cards
   const cards = await page.$$eval(cardSelector, (elements) =>
     elements.map((el) => {
       const name = el.querySelector("h3")?.textContent?.trim() || "";
@@ -30,117 +28,21 @@ async function scrapeUrl(browser: Browser, url: string) {
   return cards;
 }
 
-async function downloadSkinImage(browser: Browser, url: string, outputPath: string) {
-  try {
-    // Make sure the directory exists
-    const directory = path.dirname(outputPath);
-    await fs.mkdir(directory, { recursive: true });
 
-    // Open a new page
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2' });
-
-    // Wait for the image to load
-    const imgSelector = "div.well.result-box.nomargin img.img-responsive.center-block.main-skin-img";
-    await page.waitForSelector(imgSelector);
-
-    // Get the image element and take a screenshot of just that element
-    const imageElement = await page.$(imgSelector);
-    if (imageElement) {
-      await imageElement.screenshot({
-        path: outputPath,
-        type: 'png',
-        omitBackground: true
-      });
-      console.log(`Saved skin image to ${outputPath}`);
-    } else {
-      console.log(`Image element not found for ${url}`);
-    }
-
-    // Close the page
-    await page.close();
-  } catch (error) {
-    console.error(`Error capturing skin image from ${url}:`, error);
-  }
-}
-
-async function scrapeSkinDetails(browser: Browser, url: string) {
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: 'networkidle2' });
-  console.log("Opening page:", url);
-
-  // Extract text by label TODO: make generic to include Finish Style, Flavor Text, ...
-  const description = await page.evaluate(() => {
-    const rows = document.querySelectorAll(".skin-misc-details p");
-    for (const row of rows) {
-      const strong = row.querySelector("strong");
-      if (strong && strong.textContent && strong.textContent.includes("Description")) {
-        return row.textContent ? row.textContent.replace(strong.textContent, "").trim() || null : null;
-      }
-    }
-    return null;
-  });
-
-  // Extract imgUrls
-  const imgUrl = await page.evaluate(() => {
-    // First try to get the sideview image URL
-    // const sideviewAnchor = document.querySelector("div.well.result-box.nomargin a.image-popup-vertical-fit.misc-click");
-    // if (sideviewAnchor && sideviewAnchor.getAttribute("href")) {
-    //   console.log("!!!! ", sideviewAnchor.getAttribute("href"));
-    //   return sideviewAnchor.getAttribute("href");
-    // }
-    // Fallback to perspective view image
-    const perspectiveImg = document.querySelector("div.well.result-box.nomargin img.img-responsive.center-block.main-skin-img");
-
-    console.log(perspectiveImg?.getAttribute("src"));
-    return perspectiveImg ? perspectiveImg.getAttribute("src") : null;
-  });
-
-  // Extract rarity
-  const rarity = await page.evaluate(() => {
-    const el = document.querySelector("div.well.result-box.nomargin a.nounderline p.nomargin");
-    return el && el.textContent ? el.textContent.trim() : null;
-  });
-
-  // Extract prices
-  const prices = await page.evaluate(() => {
-    const result: Record<string, string> = {};
-    const rows = document.querySelectorAll("div#prices .btn-group-sm.btn-group-justified > a");
-    for (const row of rows) {
-      const wear = row.querySelector("span.pull-left");
-      const price = row.querySelector("span.pull-right");
-      if (wear && wear.textContent && price && price.textContent) {
-        const test = wear.textContent.trim();
-        result[test] = price.textContent.trim();
-      }
-    }
-    return result;
-  });
-
-  // Combine all data
-  return {
-    description,
-    // flavorText,
-    rarity,
-    // floatRange,
-    prices,
-    imgUrl
-  };
-}
 
 (async () => {
   // Launch a headless browser
   const browser = await puppeteer.launch();
-  // const url = 'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case';
-  const url = 'https://stash.clash.gg/case/307/Fracture-Case';
+  const url = 'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case';
+  // const url = 'https://stash.clash.gg/case/307/Fracture-Case';
   // const url = 'https://stash.clash.gg/case/355/Recoil-Case';
   // const url = 'https://stash.clash.gg/case/376/Revolution-Case';
   // const url = 'https://stash.clash.gg/case/38/Chroma-Case';
   // const url = 'https://stash.clash.gg/case/48/Chroma-2-Case';
   const outputFileName = url.split('/').pop();
 
+
   try {
-    // Get all cards
     const cards = await scrapeUrl(browser, url);
     console.log(`Found ${cards.length} cards. Processing ${cards.length - 1} cards (skipping first).`);
 
@@ -153,22 +55,25 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
       console.log(`Processing ${i}/${cards.length - 1}: ${card.name}`);
 
       try {
-        const details = await scrapeSkinDetails(browser, card.link);
+        const cardPage = await browser.newPage();
+        // Fetch card details
+        const details = await scrapeSkinDetails(cardPage, card.link);
+        await cardPage.close();
 
-        // Add card info to details
         const skinData = {
+          // append more to details
           name: card.name,
           link: card.link,
           localImagePath: "",
           ...details
         };
-
         allSkinDetails.push(skinData);
 
-        const imgName = card.name.replace(/ /g, '_');
-        const imgPath = `./images/${imgName}.png`;        // Take a screenshot of the skin image
-        await downloadSkinImage(browser, card.link, imgPath);
-        skinData.localImagePath = imgPath;
+        // Fetch card images
+        const imgScraper = new ScrapeImages(cardPage);
+        await imgScraper.scrapeSkinImage(card.name);
+        await imgScraper.scrapeCaseImage(details.case ?? "");
+        await imgScraper.scrapeCollectionImage(details.collection ?? "");
 
         console.log(`Successfully processed: ${card.name}`);
       } catch (error) {
