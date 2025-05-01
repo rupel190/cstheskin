@@ -6,6 +6,8 @@ node_modules
 /build
 /external
 
+package-lock.json
+
 # OS
 .DS_Store
 Thumbs.db
