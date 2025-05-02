@@ -58,7 +58,6 @@ async function scrapeUrl(browser: Browser, url: string) {
         const cardPage = await browser.newPage();
         // Fetch card details
         const details = await scrapeSkinDetails(cardPage, card.link);
-        await cardPage.close();
 
         const skinData = {
           // append more to details
@@ -67,14 +66,17 @@ async function scrapeUrl(browser: Browser, url: string) {
           localImagePath: "",
           ...details
         };
-        allSkinDetails.push(skinData);
 
-        // Fetch card images
+
+        // Append details
+        allSkinDetails.push(skinData);
+        // Download images
         const imgScraper = new ScrapeImages(cardPage);
         await imgScraper.scrapeSkinImage(card.name);
         await imgScraper.scrapeCaseImage(details.case ?? "");
         await imgScraper.scrapeCollectionImage(details.collection ?? "");
 
+        await cardPage.close();
         console.log(`Successfully processed: ${card.name}`);
       } catch (error) {
         console.error(`Error processing ${card.name}: ${error}`);

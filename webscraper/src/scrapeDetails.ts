@@ -43,9 +43,11 @@ async function extractRarity(page: Page): Promise<string | null> {
 
 async function extractCaseAndCollection(page: Page): Promise<{ caseName: string | null, collection: string | null }> {
   return page.evaluate(() => {
-    const wrapper = document.querySelector("div.skin-details-collection-container-wrapper");
-    const caseName = wrapper?.querySelector("p.collection-text-label")?.textContent?.trim() || null;
-    const collection = wrapper?.querySelector("img")?.getAttribute("alt")?.trim() || null;
+    const caseLabelSelector = "div.skin-details-collection-container-wrapper:nth-child(1) > a:nth-child(1) > p:nth-child(2)";
+    const collectionLabelSelector = "div.skin-details-collection-container-wrapper:nth-child(2) > a:nth-child(1) > p:nth-child(2)";
+
+    const caseName = document.querySelector(caseLabelSelector)?.textContent?.trim() || null;
+    const collection = document.querySelector(collectionLabelSelector)?.textContent?.trim() || null;
     return { caseName, collection };
   });
 }

@@ -29,14 +29,14 @@ export class ScrapeImages {
 
   async scrapeCaseImage(name: string): Promise<string> {
     const outPath = `./images/cases/${name}.png`;
-    const imgSelector = "div.skin-details-collection-container-wrapper a img";
+    const imgSelector = "div.skin-details-collection-container-wrapper a img[alt*='Case']";
     await this.saveImage(imgSelector, outPath);
     return outPath;
   }
 
   async scrapeCollectionImage(name: string): Promise<string> {
     const outPath = `./images/collections/${name}.png`;
-    const imgSelector = "div.collection-header img"
+    const imgSelector = "div.skin-details-collection-container-wrapper a img[alt*='Collection']";
     await this.saveImage(imgSelector, outPath);
     return outPath;
   }
