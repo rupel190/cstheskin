@@ -71,10 +71,10 @@ export default {
 
 			try {
 				const skin = await fetchSkin(skinUuid)
-				// Avoid insecure direct object access
 				const progress = await fetchCurrentProgress(_playerId, skin.id);
-				console.log("Current progress: ", progress?.current_stage, requestedStage);
+				console.log(`Current progress stage ${progress?.current_stage} (Requested: ${requestedStage})`);
 
+				// Avoid insecure direct object access
 				if (requestedStage > progress?.current_stage) {
 					return new Response("Requested stage higher than current stage.", {
 						status: 403,
@@ -88,6 +88,7 @@ export default {
 				const image = await fetchImage(skin.id, requestedStage);
 				const file = await env.IMAGES_BUCKET.get(image.image_path);
 				if (!file) {
+					console.log(`Image with skin_id ${skin.id} and stage ${requestedStage} not found.`)
 					return new Response("Image file not in R2", { status: 404 });
 				}
 				return new Response(file.body, {
@@ -184,7 +185,7 @@ export default {
 							current_stage = excluded.current_stage,
 							solved = excluded.solved
 				`).bind(playerId, skinId, stage, solved).run();
-			console.log("Insert initial player progress, playerId:", playerId, " skinId:", skinId, " stage:", stage, "solved:", solved);
+			console.log("Insert player progress, playerId:", playerId, " skinId:", skinId, " stage:", stage, "solved:", solved);
 		}
 
 		async function nextUnprogressedSkin(playerId: string) {
@@ -224,9 +225,11 @@ export default {
 				FROM skin_images
 				WHERE skin_id = ? AND stage = ?
 			`).bind(skinId, stage).first();
+
 			if (!image) {
-				throw new Error("Image for " + skinId + " not found.");
+				throw new Error(`Image path: ${image}`);
 			}
+			console.log(`Image path: ${image}`);
 			return image;
 		}
 
@@ -237,6 +240,7 @@ export default {
 			if (!progress) {
 				console.error("Progress for playerId " + playerId + " and skinId " + skinId + " not found - defaulting to stage 1 and unsolved.");
 				progress = { current_stage: 1, solved: false };
+				insertPlayerProgress(playerId, skinId, "1", false);
 			} else {
 				progress.current_stage = Number(progress.current_stage);
 			}

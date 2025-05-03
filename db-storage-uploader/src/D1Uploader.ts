@@ -2,6 +2,8 @@ import "dotenv/config";
 import fetch from "node-fetch";
 import * as fs from "fs";
 import { randomUUID } from "crypto";
+import { join, relative, extname, basename } from "path";
+import path from 'path';
 
 export class D1Uploader {
   private accountId = process.env.R2_ACCOUNT_ID!;
@@ -19,7 +21,7 @@ export class D1Uploader {
     });
   }
 
-  async uploadToDB(skinsJsonPath: string): Promise<void> {
+  async uploadToDB(skinsJsonPath: string, prefixImagePath: string = ""): Promise<void> {
     const jsonData = JSON.parse(fs.readFileSync(skinsJsonPath, "utf-8"));
 
     for (const e of jsonData) {
@@ -47,9 +49,13 @@ export class D1Uploader {
 
       // Insert into skin_images
       for (let i = 1; i < 6; i++) {
-        const imgName = `${e.name}_stage${i}.png`
+        console.log("locaaaaaaaaaaaa", e.outPathSkin);
+        const baseFilename = basename(e.outPathSkin, ".png"); // → Sawed-Off_|_Spirit_Board
+        const finalFilename = `${baseFilename}_stage${i}.png`; // Sawed-Off_|_Spirit_Board_stage1.png
+        console.log(finalFilename);
+
         body = JSON.stringify({
-          params: [skinId, i, imgName],
+          params: [skinId, i, finalFilename],
           sql: `INSERT INTO skin_images (skin_id, stage, image_path) VALUES (?, ?, ?)`
         });
         const insertSkinImageRes = await this.execReq(body);

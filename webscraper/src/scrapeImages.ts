@@ -8,7 +8,6 @@ export class ScrapeImages {
   }
 
   private async saveImage(selector: string, outputPath: string) {
-
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     const el = await this.page.$(selector);
 
@@ -20,25 +19,19 @@ export class ScrapeImages {
     }
   }
 
-  async scrapeSkinImage(name: string): Promise<string> {
-    const outPath = `./images/skins/${name}.png`;
+  async scrapeSkinImage(exportPath: string) {
     const imgSelector = "a.image-popup-vertical-fit.misc-click img.main-skin-img"
-    await this.saveImage(imgSelector, outPath);
-    return outPath;
+    await this.saveImage(imgSelector, exportPath);
   }
 
-  async scrapeCaseImage(name: string): Promise<string> {
-    const outPath = `./images/cases/${name}.png`;
+  async scrapeCaseImage(exportPath: string) {
     const imgSelector = "div.skin-details-collection-container-wrapper a img[alt*='Case']";
-    await this.saveImage(imgSelector, outPath);
-    return outPath;
+    await this.saveImage(imgSelector, exportPath);
   }
 
-  async scrapeCollectionImage(name: string): Promise<string> {
-    const outPath = `./images/collections/${name}.png`;
+  async scrapeCollectionImage(exportPath: string) {
     const imgSelector = "div.skin-details-collection-container-wrapper a img[alt*='Collection']";
-    await this.saveImage(imgSelector, outPath);
-    return outPath;
+    await this.saveImage(imgSelector, exportPath);
   }
 }
 

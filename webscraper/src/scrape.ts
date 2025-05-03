@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 import { scrapeSkinDetails } from './scrapeDetails';
 import { ScrapeImages } from './scrapeImages';
 import fetch from 'node-fetch';
-import path from 'path';
+import path, { join } from 'path';
 
 puppeteer.use(StealthPlugin());
 
@@ -28,6 +28,11 @@ async function scrapeUrl(browser: Browser, url: string) {
   return cards;
 }
 
+function getReplaced(name: string, prefix: string) {
+  const cleanName = name.replace(/ /g, "_").trim();
+  const outPath = path.join(prefix, `${cleanName}.png`);
+  return outPath;
+}
 
 
 (async () => {
@@ -59,22 +64,30 @@ async function scrapeUrl(browser: Browser, url: string) {
         // Fetch card details
         const details = await scrapeSkinDetails(cardPage, card.link);
 
+        // Download images
+        const imgScraper = new ScrapeImages(cardPage);
+        const outPathSkin = getReplaced(card.name, "skins");
+        const outPathCase = getReplaced(details.case ?? "", "cases");
+        const outPathCollection = getReplaced(details.collection ?? "", "collections");
+        await imgScraper.scrapeSkinImage(outPathSkin);
+        // Currently only one collection at a time is scraped, so saving those images once is sufficient
+        if (i == 1) {
+          await imgScraper.scrapeCaseImage(outPathCase);
+          await imgScraper.scrapeCollectionImage(outPathCollection);
+        }
+
         const skinData = {
           // append more to details
           name: card.name,
           link: card.link,
-          localImagePath: "",
+          outPathSkin: outPathSkin,
+          outPathCase: outPathCase,
+          outPathCollection: outPathCollection,
           ...details
         };
 
-
         // Append details
         allSkinDetails.push(skinData);
-        // Download images
-        const imgScraper = new ScrapeImages(cardPage);
-        await imgScraper.scrapeSkinImage(card.name);
-        await imgScraper.scrapeCaseImage(details.case ?? "");
-        await imgScraper.scrapeCollectionImage(details.collection ?? "");
 
         await cardPage.close();
         console.log(`Successfully processed: ${card.name}`);
@@ -86,7 +99,8 @@ async function scrapeUrl(browser: Browser, url: string) {
 
     // Save all data to a JSON file
     const fileName = `${outputFileName}-${new Date().toISOString().slice(0, 10)}.json`;
-    await fs.writeFile(fileName, JSON.stringify(allSkinDetails, null, 2));
+    const fullPath = fileName;
+    await fs.writeFile(fullPath, JSON.stringify(allSkinDetails, null, 2));
     console.log(`Successfully saved ${allSkinDetails.length} skin details to ${fileName}`);
 
   } catch (error) {

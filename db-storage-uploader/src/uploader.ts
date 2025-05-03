@@ -35,12 +35,12 @@ async function uploadImages(r2: R2Uploader, inputPath: string) {
 }
 
 // TODO: Currently only skin name + uuid
-async function uploadMetadata(d1: D1Uploader, json: string) {
+async function uploadMetadata(d1: D1Uploader, json: string, targetPath: string) {
   console.log("Uploading metadata");
   if (!json.endsWith(".json")) {
     throw new Error("Invalid metadata file.");
   }
-  await d1.uploadToDB(json);
+  await d1.uploadToDB(json, targetPath);
 }
 
 async function main() {
@@ -49,9 +49,10 @@ async function main() {
 
   const inputPath = "./external/images/";
   const skinsJson = "./external/skins.json";
+  const skinsTarget = "skins/";
 
-  await uploadImages(r2, inputPath);
-  await uploadMetadata(d1, skinsJson);
+  // await uploadImages(r2, inputPath);
+  await uploadMetadata(d1, skinsJson, skinsTarget);
 
   console.log("🎉 Upload completed.");
 }
