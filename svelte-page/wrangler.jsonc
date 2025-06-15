@@ -33,7 +33,7 @@
 	 */
   "d1_databases": [
     {
-      "binding": "devDB",
+      "binding": "DEV_DB",
       "database_name": "cstheskin-dev",
       "database_id": "07ad50b6-21dc-4f2f-a48c-3c944e408c07"
     }

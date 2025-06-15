@@ -9,7 +9,7 @@
   let skinUuid = "invalidUuid";
 
   async function startGame() {
-    const res = await fetch("/api/game/start", { method: "GET" });
+    const res = await fetch("/game/start", { method: "GET" });
     const data = await res.json();
     skinUuid = data.uuid;
     await loadImage();
@@ -20,7 +20,7 @@
       skinUuid,
       stage,
     });
-    const res = await fetch(`/api/image?${params.toString()}`, {
+    const res = await fetch(`/image?${params.toString()}`, {
       method: "GET",
     });
     const blob = await res.blob();
@@ -30,7 +30,7 @@
 
   async function submitGuess() {
     const params = new URLSearchParams({ skinUuid, guess });
-    const res = await fetch(`/api/guess?${params.toString()}`, {
+    const res = await fetch(`/guess?${params.toString()}`, {
       method: "GET",
     });
     const result = await res.json();
