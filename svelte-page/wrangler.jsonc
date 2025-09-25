@@ -35,14 +35,15 @@
     {
       "binding": "DEV_DB",
       "database_name": "cstheskin-dev",
-      "database_id": "07ad50b6-21dc-4f2f-a48c-3c944e408c07"
+      "database_id": "07ad50b6-21dc-4f2f-a48c-3c944e408c07",
+      "preview_database_id": "07ad50b6-21dc-4f2f-a48c-3c944e408c07"
     }
   ],
   "r2_buckets": [
     {
       "binding": "IMAGES_BUCKET", // Access via env.IMAGES_BUCKET
-      "bucket_name": "cstheskin", // Actual R2 bucket name
-      "preview_bucket_name": "cstheskin-preview"
+      "bucket_name": "cstheskin-preview", // Production bucket
+      "preview_bucket_name": "cstheskin-preview" // Use same bucket for preview
     }
   ]
   /**

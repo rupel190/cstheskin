@@ -1,4 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
+import { insertPlayer, fetchPlayerId } from './db';
 
 const SECRET = "super_secret_server_side_salt"; // TODO: move to env in prod!
 
@@ -42,7 +43,7 @@ export async function verifyToken(token: string) {
   if (expected !== hash) {
     throw "token_not_matching";
   }
-  return expected;
+  return uuid;
 }
 
 export async function sha256(msg: string) {

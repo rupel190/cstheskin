@@ -1,5 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { initPlayerSession } from '$lib/auth';
+import { nextUnprogressedSkin } from '$lib/db';
 
 // 🎮 Init player session: Set locals, return skin and cookie
 export const GET: RequestHandler = async ({ locals, cookies, platform }) => {

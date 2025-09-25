@@ -1,9 +1,10 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import { fetchImage, fetchCurrentProgress, fetchSkin } from "$lib/db";
+import { initPlayerSession } from "$lib/auth";
 
 
 // 🖼 Get image for specific skin/stage
-export const GET: RequestHandler = async ({ url, locals, platform }) => {
+export const GET: RequestHandler = async ({ url, locals, platform, cookies }) => {
   const env = platform?.env!;
   const skinUuid = url.searchParams.get("skinUuid");
   const requestedStage = url.searchParams.get("stage");
@@ -12,10 +13,18 @@ export const GET: RequestHandler = async ({ url, locals, platform }) => {
     return new Response("Missing skin UUID or stage parameter.", { status: 400 });
   }
 
+  // Initialize authentication
   try {
-    const skin = await fetchSkin(skinUuid)
+    await initPlayerSession(env, cookies, locals);
+  } catch (err) {
+    return new Response("Unauthorized", { status: 403 });
+  }
+
+  try {
+    const skin = await fetchSkin(env, skinUuid)
+    console.log("PARAMS CHECK: locals.id:", locals.id, "skin.id:", skin.id, "types:", typeof locals.id, typeof skin.id);
     // Avoid insecure direct object access
-    const progress = await fetchCurrentProgress(env, locals.uuid, skin.id);
+    const progress = await fetchCurrentProgress(env, locals.id, skin.id);
     console.log("Current progress: ", progress?.current_stage, requestedStage);
 
     if (requestedStage > progress?.current_stage) {
@@ -28,7 +37,7 @@ export const GET: RequestHandler = async ({ url, locals, platform }) => {
       });
     }
 
-    const image = await fetchImage(skin.id, requestedStage);
+    const image = await fetchImage(env, skin.id, requestedStage);
     const file = await env.IMAGES_BUCKET.get(image.image_path);
     if (!file) {
       return new Response("Image file not in R2", { status: 404 });

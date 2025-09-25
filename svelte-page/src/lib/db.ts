@@ -1,6 +1,6 @@
 
 
-async function fetchImage(env: App.Env, skinId: string, stage: string) {
+export async function fetchImage(env: App.Env, skinId: string, stage: string) {
   const image = await env.DEV_DB.prepare(`
       SELECT image_path
       FROM skin_images
@@ -12,13 +12,13 @@ async function fetchImage(env: App.Env, skinId: string, stage: string) {
   return image;
 }
 
-async function insertPlayer(env: App.Env, playerUuid: string) {
+export async function insertPlayer(env: App.Env, playerUuid: string) {
   await env.DEV_DB.prepare(`
        INSERT INTO players(uuid) VALUES(?)
      `).bind(playerUuid).run();
 }
 
-async function insertPlayerProgress(env: App.Env, playerId: string, skinId: string, stage: string, solved: boolean) {
+export async function insertPlayerProgress(env: App.Env, playerId: string, skinId: string, stage: string, solved: boolean) {
   await env.DEV_DB.prepare(`
        INSERT INTO player_progress (player_id, skin_id, current_stage, solved)
        VALUES(?, ?, ?, ?)
@@ -29,7 +29,7 @@ async function insertPlayerProgress(env: App.Env, playerId: string, skinId: stri
   console.log("Insert initial player progress, playerId:", playerId, " skinId:", skinId, " stage:", stage, "solved:", solved);
 }
 
-async function nextUnprogressedSkin(env: App.Env, playerId: string) {
+export async function nextUnprogressedSkin(env: App.Env, playerId: string) {
   return await env.DEV_DB.prepare(`
      SELECT id, uuid, name FROM skins
      WHERE NOT EXISTS (
@@ -42,7 +42,7 @@ async function nextUnprogressedSkin(env: App.Env, playerId: string) {
    `).bind(playerId).first();
 }
 
-async function fetchPlayerId(env: App.Env, playerUuid: string) {
+export async function fetchPlayerId(env: App.Env, playerUuid: string) {
   const player = await env.DEV_DB.prepare(`SELECT id FROM players WHERE uuid = ?`)
     .bind(playerUuid)
     .first<{ id: string }>()
@@ -52,7 +52,7 @@ async function fetchPlayerId(env: App.Env, playerUuid: string) {
   return player.id;
 }
 
-async function fetchSkin(env: App.Env, skinUuid: string) {
+export async function fetchSkin(env: App.Env, skinUuid: string) {
   const skin = await env.DEV_DB.prepare(`SELECT id, name FROM skins WHERE uuid = ?`).bind(skinUuid).first()
   if (!skin) {
     throw new Error("Skin for " + skinUuid + " not found.");
@@ -60,7 +60,7 @@ async function fetchSkin(env: App.Env, skinUuid: string) {
   return skin;
 }
 
-async function fetchCurrentProgress(env: App.Env, playerId: string, skinId: string) {
+export async function fetchCurrentProgress(env: App.Env, playerId: string, skinId: string) {
   let progress = await env.DEV_DB
     .prepare("SELECT current_stage, solved FROM player_progress WHERE player_id = ? AND skin_id = ? ORDER BY current_stage DESC")
     .bind(playerId, skinId).first();
@@ -72,6 +72,4 @@ async function fetchCurrentProgress(env: App.Env, playerId: string, skinId: stri
   }
   return progress;
 }
-
-
 
