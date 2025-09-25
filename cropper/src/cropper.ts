@@ -253,7 +253,7 @@ const cropData: SkinCropData = {
 
 
 function getSkinFromFileName(filename: string): string {
-  const base = path.basename(filename); // MP7_|_Abyssal_Apparition.png
+  const base = path.basename(filename); // images/MP7 | Abyssal Apparition.png
   const skin = base.split("|")[0].trim();
   return skin.replace(/_/g, " ").trim();
 }
@@ -270,14 +270,17 @@ async function cropImage(inputPath: string, outputPath: string, cropTemplate: Cr
 async function multiCrop(filePath: string, outputDir: string, cropboxes: CropBox[]) {
   for (let i = 0; i < cropboxes?.length; i++) {
     const cropbox = cropboxes[i];
-    const outputFileName = `${path.basename(filePath, path.extname(filePath))}_stage${i + 1}.jpg`;
+    const outputFileName = `${path.basename(filePath, path.extname(filePath))}_stage${i + 1}.png`;
     const outPath = path.join(outputDir, outputFileName);
     await cropImage(filePath, outPath, cropbox);
   }
 }
 
 (async () => {
-  const imageDir = '../webscraper/images/';
+
+  //TODO: Get correct output dir from json to crop
+
+  const imageDir = '../webscraper/images/skins';
   const outputDir = './cropped';
   await fs.mkdir(outputDir, { recursive: true }); // ensure output dir exists
   const files = await fs.readdir(imageDir);
