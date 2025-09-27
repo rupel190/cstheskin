@@ -1,47 +1,47 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { fetchImage, fetchCurrentProgress, fetchSkin } from "$lib/db";
-import { initPlayerSession } from "$lib/auth";
-
+import { fetchImageBySkinUuid } from "$lib/db";
+import { getGameState, getSkinProgress, getCurrentStage } from "$lib/cookie-auth";
 
 // 🖼 Get image for specific skin/stage
-export const GET: RequestHandler = async ({ url, locals, platform, cookies }) => {
+export const GET: RequestHandler = async ({ url, platform, cookies }) => {
   const env = platform?.env!;
   const skinUuid = url.searchParams.get("skinUuid");
-  const requestedStage = url.searchParams.get("stage");
+  const requestedStageParam = url.searchParams.get("stage");
 
-  if (!skinUuid || !requestedStage) {
+  if (!skinUuid || !requestedStageParam) {
     return new Response("Missing skin UUID or stage parameter.", { status: 400 });
   }
 
-  // Initialize authentication
-  try {
-    await initPlayerSession(env, cookies, locals);
-  } catch (err) {
-    return new Response("Unauthorized", { status: 403 });
+  const requestedStage = parseInt(requestedStageParam);
+  if (isNaN(requestedStage) || requestedStage < 1 || requestedStage > 5) {
+    return new Response("Invalid stage parameter. Must be 1-5.", { status: 400 });
   }
 
   try {
-    const skin = await fetchSkin(env, skinUuid)
-    console.log("PARAMS CHECK: locals.id:", locals.id, "skin.id:", skin.id, "types:", typeof locals.id, typeof skin.id);
-    // Avoid insecure direct object access
-    const progress = await fetchCurrentProgress(env, locals.id, skin.id);
-    console.log("Current progress: ", progress?.current_stage, requestedStage);
+    const gameState = getGameState(cookies);
+    const skinProgress = getSkinProgress(gameState, skinUuid);
+    const currentStage = getCurrentStage(skinProgress);
 
-    if (requestedStage > progress?.current_stage) {
+    console.log(`Image request - skinUuid: ${skinUuid}, requestedStage: ${requestedStage}, skinProgress:`, skinProgress, `currentStage: ${currentStage}`);
+
+    // Prevent access to stages beyond current progress
+    if (requestedStage > currentStage) {
+      console.log(`Access denied - requested ${requestedStage} > current ${currentStage}`);
       return new Response("Requested stage higher than current stage.", {
         status: 403,
         headers: {
-          "Content-Type": "image/jpeg",
           "Access-Control-Allow-Origin": "*"
         }
       });
     }
 
-    const image = await fetchImage(env, skin.id, requestedStage);
+    const image = await fetchImageBySkinUuid(env, skinUuid, requestedStage);
     const file = await env.IMAGES_BUCKET.get(image.image_path);
+
     if (!file) {
-      return new Response("Image file not in R2", { status: 404 });
+      return new Response("Image file not found in storage", { status: 404 });
     }
+
     return new Response(file.body, {
       headers: {
         "Content-Type": "image/jpeg",
@@ -49,15 +49,13 @@ export const GET: RequestHandler = async ({ url, locals, platform, cookies }) =>
       }
     });
   } catch (err) {
-    console.error("Error fetching image: ", err);
+    console.error("Error fetching image:", err);
     return new Response("Error fetching image.", {
       status: 500,
       headers: {
-        "Content-Type": "image/jpeg",
         "Access-Control-Allow-Origin": "*"
       }
     });
   }
-
 }
 

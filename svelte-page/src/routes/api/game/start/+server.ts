@@ -1,41 +1,45 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { initPlayerSession } from '$lib/auth';
-import { nextUnprogressedSkin } from '$lib/db';
+import { getGameState } from '$lib/cookie-auth';
+import { getRandomUnsolvedSkin } from '$lib/db';
 
-// 🎮 Init player session: Set locals, return skin and cookie
-export const GET: RequestHandler = async ({ locals, cookies, platform }) => {
-  const db = platform!.env // No check necessary, breaks either way without fallback
-
-  try {
-    await initPlayerSession(db, cookies, locals);
-  } catch (err) {
-    console.warn("initPlayerSession error: ", err)
-    return new Response("Unverifiable user ID. Delete cookie and try again.", {
-      status: 403,
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  }
+// 🎮 Get a random unsolved skin for the player
+export const GET: RequestHandler = async ({ cookies, platform }) => {
+  const env = platform!.env;
 
   try {
-    const skin = await nextUnprogressedSkin(db, locals.id);
-    // Return skin
-    return new Response(JSON.stringify({ uuid: skin?.uuid }), {
+    const gameState = getGameState(cookies);
+
+    // Get list of solved skin UUIDs
+    const solvedSkinUuids = Object.entries(gameState.skin_progress)
+      .filter(([_, progress]) => progress.solved)
+      .map(([skinUuid, _]) => skinUuid);
+
+    // Get a random unsolved skin
+    const skin = await getRandomUnsolvedSkin(env, solvedSkinUuids);
+
+    if (!skin) {
+      return new Response(JSON.stringify({ message: "No more skins available!" }), {
+        status: 404,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    return new Response(JSON.stringify({ uuid: skin.uuid, name: skin.name }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Set-Cookie": `user=${cookies.get("token")}; Path=/; HttpOnly`,
         "Access-Control-Allow-Origin": "*"
       }
     });
   } catch (err) {
-    console.error(err);
-    return new Response("No unprogressed skins found!", {
-      status: 404,
+    console.error("Error in /api/game/start:", err);
+    return new Response("Internal server error", {
+      status: 500,
       headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Set-Cookie": `user=${cookies.get("token")}; Path=/; HttpOnly`,
+        "Access-Control-Allow-Origin": "*"
       }
     });
   }

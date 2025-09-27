@@ -19,21 +19,6 @@ CREATE TABLE IF NOT EXISTS skin_images (
 	UNIQUE (skin_id, stage)
 );
 
-CREATE TABLE IF NOT EXISTS players (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	uuid TEXT UNIQUE NOT NULL,
-	name TEXT
-);
-
-CREATE TABLE IF NOT EXISTS player_progress (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	player_id INTEGER NOT NULL REFERENCES players(id),
-	skin_id INTEGER NOT NULL REFERENCES skins(id),
-	current_stage INTEGER DEFAULT 1,
-	solved BOOLEAN DEFAULT FALSE,
-	UNIQUE (player_id, skin_id)
-);
-
 -- Insert skins from R2 data with proper crypto.randomUUID() generated UUIDs
 INSERT INTO skins (uuid, name, encrypted_name) VALUES
 ('add276e4-f0bf-4901-8b50-31da2fd28813', 'AK-47 | Nightwish', 'AK-47 | Nightwish'),
