@@ -24,9 +24,9 @@ export const GET: RequestHandler = async ({ url, platform, cookies }) => {
 
     console.log(`Image request - skinUuid: ${skinUuid}, requestedStage: ${requestedStage}, skinProgress:`, skinProgress, `currentStage: ${currentStage}`);
 
-    // Prevent access to stages beyond current progress
-    if (requestedStage > currentStage) {
-      console.log(`Access denied - requested ${requestedStage} > current ${currentStage}`);
+    // Prevent access to stages beyond current progress, unless skin is solved
+    if (requestedStage > currentStage && !skinProgress.solved) {
+      console.log(`Access denied - requested ${requestedStage} > current ${currentStage}, not solved`);
       return new Response("Requested stage higher than current stage.", {
         status: 403,
         headers: {
