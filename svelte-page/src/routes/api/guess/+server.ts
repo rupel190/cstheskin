@@ -34,6 +34,7 @@ function checkGuess(skinName: string, guess: string): { result: 'correct' | 'clo
   }
 
   // Check if guess includes skin name words - fully correct
+  // TODO: Fix false positives from partial matches
   if (normalizedSkinPart) {
     const skinWords = normalizedSkinPart.split(' ');
     const guessWords = normalizedGuess.split(' ');
@@ -74,7 +75,7 @@ function checkGuess(skinName: string, guess: string): { result: 'correct' | 'clo
   return { result: 'wrong' };
 }
 
-// 🎯 Guess
+// Guess
 export const GET: RequestHandler = async ({ url, platform, cookies }) => {
   const env = platform!.env;
 
@@ -117,7 +118,7 @@ export const GET: RequestHandler = async ({ url, platform, cookies }) => {
     }
 
     const skin = await fetchSkinByUuid(env, skinUuid);
-    const guessResult = checkGuess(skin.name, guess);
+    const guessRgsult = checkGuess(skin.name, guess);
     const solved = guessResult.result === 'correct';
 
     // Update progress: increment attempts, set solved status

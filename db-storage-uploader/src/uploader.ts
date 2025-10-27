@@ -51,7 +51,7 @@ async function main() {
   const skinsJson = "./external/skins.json";
   const skinsTarget = "skins/";
 
-  // await uploadImages(r2, inputPath);
+  await uploadImages(r2, inputPath);
   await uploadMetadata(d1, skinsJson, skinsTarget);
 
   console.log("🎉 Upload completed.");

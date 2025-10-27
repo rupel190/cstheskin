@@ -101,7 +101,7 @@ async function scrapeSkinDetails(browser: Browser, url: string) {
 
   try {
     // Get all cards
-    const cards = await scrapeUrl(browser, url);
+    const cards = await scrapeCards(browser, url);
     console.log(`Found ${cards.length} cards. Processing ${cards.length - 1} cards (skipping first).`);
 
     // Create array to store all skin details

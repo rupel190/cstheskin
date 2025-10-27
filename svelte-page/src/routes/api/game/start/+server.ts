@@ -27,11 +27,11 @@ export const GET: RequestHandler = async ({ cookies, platform }) => {
       });
     }
 
-    return new Response(JSON.stringify({ uuid: skin.uuid, name: skin.name }), {
+    return new Response(JSON.stringify({ uuid: skin.uuid }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*", name: skin.name
       }
     });
   } catch (err) {

@@ -9,7 +9,7 @@ import path, { join } from 'path';
 
 puppeteer.use(StealthPlugin());
 
-async function scrapeUrl(browser: Browser, url: string) {
+async function scrapeCards(browser: Browser, url: string) {
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: 'networkidle2' });
   await page.screenshot({ path: "debug.png" });
@@ -34,21 +34,10 @@ function getReplaced(name: string, prefix: string) {
   return outPath;
 }
 
-
-(async () => {
-  // Launch a headless browser
-  const browser = await puppeteer.launch();
-  const url = 'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case';
-  // const url = 'https://stash.clash.gg/case/307/Fracture-Case';
-  // const url = 'https://stash.clash.gg/case/355/Recoil-Case';
-  // const url = 'https://stash.clash.gg/case/376/Revolution-Case';
-  // const url = 'https://stash.clash.gg/case/38/Chroma-Case';
-  // const url = 'https://stash.clash.gg/case/48/Chroma-2-Case';
-  const outputFileName = url.split('/').pop();
-
+async function scrapeUrl(browser: Browser, url: string) {
 
   try {
-    const cards = await scrapeUrl(browser, url);
+    const cards = await scrapeCards(browser, url);
     console.log(`Found ${cards.length} cards. Processing ${cards.length - 1} cards (skipping first).`);
 
     // Create array to store all skin details
@@ -96,12 +85,7 @@ function getReplaced(name: string, prefix: string) {
         // Continue with next card even if one fails
       }
     }
-
-    // Save all data to a JSON file
-    const fileName = `${outputFileName}-${new Date().toISOString().slice(0, 10)}.json`;
-    const fullPath = fileName;
-    await fs.writeFile(fullPath, JSON.stringify(allSkinDetails, null, 2));
-    console.log(`Successfully saved ${allSkinDetails.length} skin details to ${fileName}`);
+    return allSkinDetails;
 
   } catch (error) {
     console.error('An error occurred during scraping:', error);
@@ -110,6 +94,36 @@ function getReplaced(name: string, prefix: string) {
     await browser.close();
     console.log('Browser closed');
   }
+}
+
+async function writeSkinData(url: string, allSkinDetails) {
+  const outputFileName = url.split('/').pop();
+  // Save all data to a JSON file
+  const fileName = `${outputFileName}-${new Date().toISOString().slice(0, 10)}.json`;
+  const fullPath = fileName;
+  await fs.writeFile(fullPath, JSON.stringify(allSkinDetails, null, 2));
+  console.log(`Successfully saved ${allSkinDetails.length} skin details to ${fileName}`);
+
+}
+
+(async () => {
+  const urls = [
+    'http://stash.clash.gg/case/422/Fever-Case',
+    'https://stash.clash.gg/case/412/Gallery-Case',
+    'https://stash.clash.gg/case/393/Kilowatt-Case',
+    'https://stash.clash.gg/case/339/Dreams-&-Nightmares-Case',
+    'https://stash.clash.gg/case/307/Fracture-Case',
+    'https://stash.clash.gg/case/355/Recoil-Case',
+    'https://stash.clash.gg/case/376/Revolution-Case',
+  ];
+
+  for (const url of urls) {
+    const browser = await puppeteer.launch();
+    const allSkinDetails = await scrapeUrl(browser, url);
+    await writeSkinData(url, allSkinDetails);
+  }
+
+
 })();
 
 
