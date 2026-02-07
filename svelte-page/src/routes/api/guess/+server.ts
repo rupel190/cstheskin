@@ -118,7 +118,7 @@ export const GET: RequestHandler = async ({ url, platform, cookies }) => {
     }
 
     const skin = await fetchSkinByUuid(env, skinUuid);
-    const guessRgsult = checkGuess(skin.name, guess);
+    const guessResult = checkGuess(skin.name, guess);
     const solved = guessResult.result === 'correct';
 
     // Update progress: increment attempts, set solved status

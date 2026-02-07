@@ -229,12 +229,37 @@
       {:else}
         <div class="text-center space-y-4">
           {#if skinName}
-            <div
-              class="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl shadow-lg"
-            >
-              <div class="text-sm opacity-90">Correct Answer:</div>
-              <div class="text-xl font-bold">{skinName}</div>
-            </div>
+            {#if skinSolved}
+              <!-- Won: guessed correctly -->
+              <div
+                class="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl shadow-lg"
+                role="status"
+                aria-live="polite"
+              >
+                <div class="flex items-center justify-center gap-2 text-sm opacity-90">
+                  <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>You got it!</span>
+                </div>
+                <div class="text-xl font-bold mt-1">{skinName}</div>
+              </div>
+            {:else}
+              <!-- Lost: ran out of guesses -->
+              <div
+                class="bg-gradient-to-r from-red-600 to-rose-600 text-white p-4 rounded-xl shadow-lg"
+                role="status"
+                aria-live="polite"
+              >
+                <div class="flex items-center justify-center gap-2 text-sm opacity-90">
+                  <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Out of guesses!</span>
+                </div>
+                <div class="text-xl font-bold mt-1">{skinName}</div>
+              </div>
+            {/if}
           {/if}
           <button
             class="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg"
