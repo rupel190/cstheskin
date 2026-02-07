@@ -11,6 +11,8 @@
   let showDropdown = false;
   let selectedIndex = -1;
   let inputElement: HTMLInputElement;
+  let loadError = false;
+  let isLoading = true;
 
   function getSuggestions(query: string, allSkinNames: string[]): string[] {
     const normalizedQuery = query.toLowerCase().trim();
@@ -39,7 +41,7 @@
   }
 
   $: {
-    if (value.trim().length >= 4) {
+    if (value.trim().length >= 4 && skinNames.length > 0) {
       suggestions = getSuggestions(value, skinNames);
       showDropdown = suggestions.length > 0;
     } else {
@@ -49,13 +51,33 @@
     selectedIndex = -1;
   }
 
-  async function loadSkinNames() {
+  async function loadSkinNames(retryCount = 0): Promise<void> {
+    const maxRetries = 3;
+    isLoading = true;
+    loadError = false;
+
     try {
       const res = await fetch("/api/skins");
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
       const data = await res.json();
-      skinNames = data.skinNames || [];
+      if (!data.skinNames || !Array.isArray(data.skinNames)) {
+        throw new Error("Invalid response format");
+      }
+      skinNames = data.skinNames;
+      loadError = false;
+      console.log(`Loaded ${skinNames.length} skin names for autocomplete`);
     } catch (err) {
-      console.error("Failed to load skin names:", err);
+      console.error(`Failed to load skin names (attempt ${retryCount + 1}/${maxRetries}):`, err);
+      if (retryCount < maxRetries - 1) {
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retryCount)));
+        return loadSkinNames(retryCount + 1);
+      }
+      loadError = true;
+    } finally {
+      isLoading = false;
     }
   }
 
@@ -126,13 +148,24 @@
   <input
     bind:this={inputElement}
     bind:value
-    {placeholder}
-    {disabled}
-    class="w-full px-4 py-3 bg-slate-800 border-2 border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-400 transition-all duration-300"
+    placeholder={isLoading ? "Loading suggestions..." : loadError ? "Suggestions unavailable" : placeholder}
+    disabled={disabled}
+    class="w-full px-4 py-3 bg-slate-800 border-2 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-400 transition-all duration-300"
+    class:border-slate-600={!loadError}
+    class:border-yellow-600={loadError}
     on:keydown={handleKeyDown}
     on:blur={handleBlur}
     autocomplete="off"
   />
+  {#if loadError}
+    <button
+      class="absolute right-2 top-1/2 -translate-y-1/2 text-yellow-500 hover:text-yellow-400 text-sm px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 transition-colors"
+      on:click|preventDefault={() => loadSkinNames()}
+      title="Retry loading suggestions"
+    >
+      Retry
+    </button>
+  {/if}
 
   {#if showDropdown}
     <div
