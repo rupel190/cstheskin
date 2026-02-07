@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crop Box Editor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h1 { margin-bottom: 20px; color: #f59e0b; }
+
+    .layout { display: flex; gap: 20px; flex-wrap: wrap; }
+
+    .controls {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 12px;
+      min-width: 300px;
+    }
+    .controls h2 { margin-bottom: 15px; font-size: 1.1rem; color: #94a3b8; }
+
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 0.9rem; }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #fff;
+    }
+    .input-group input[type="file"] { padding: 8px; }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    .btn-primary { background: #f59e0b; color: #000; }
+    .btn-secondary { background: #334155; color: #fff; }
+    .btn-primary:hover { background: #d97706; }
+    .btn-secondary:hover { background: #475569; }
+
+    .canvas-container {
+      position: relative;
+      background: #0f172a;
+      border-radius: 12px;
+      overflow: hidden;
+      display: inline-block;
+    }
+    #canvas { display: block; }
+
+    .crop-box {
+      position: absolute;
+      border: 3px solid;
+      cursor: move;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 24px;
+      text-shadow: 0 0 4px #000;
+    }
+    .crop-box.stage1 { border-color: #ef4444; color: #ef4444; }
+    .crop-box.stage2 { border-color: #f59e0b; color: #f59e0b; }
+    .crop-box.stage3 { border-color: #22c55e; color: #22c55e; }
+    .crop-box.stage4 { border-color: #3b82f6; color: #3b82f6; }
+
+    .crop-box .resize-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: currentColor;
+      border-radius: 2px;
+    }
+    .resize-handle.se { bottom: -6px; right: -6px; cursor: se-resize; }
+
+    .coordinates {
+      margin-top: 20px;
+      background: #0f172a;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .stage-toggles { margin-bottom: 15px; }
+    .stage-toggles label {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 15px;
+      cursor: pointer;
+    }
+    .stage-toggles input { margin-right: 5px; }
+
+    .weapon-select { margin-bottom: 20px; }
+
+    .instructions {
+      background: #1e3a5f;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .instructions code { background: #0f172a; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Crop Box Editor</h1>
+
+  <div class="instructions">
+    <strong>Instructions:</strong>
+    Load an image via URL or file upload. Drag crop boxes to position them.
+    Resize using the corner handle. Stage 1 = hardest (small detail), Stage 4 = easiest (large area).
+    Copy the output coordinates to <code>cropper.ts</code>.
+  </div>
+
+  <div class="layout">
+    <div class="controls">
+      <h2>Load Image</h2>
+
+      <div class="input-group">
+        <label>Image URL</label>
+        <input type="text" id="imageUrl" placeholder="https://...">
+      </div>
+      <button class="btn-primary" onclick="loadFromUrl()">Load URL</button>
+
+      <div class="input-group">
+        <label>Or upload file</label>
+        <input type="file" id="imageFile" accept="image/*" onchange="loadFromFile(event)">
+      </div>
+
+      <hr style="border-color: #334155; margin: 20px 0;">
+
+      <div class="weapon-select">
+        <div class="input-group">
+          <label>Weapon Type</label>
+          <select id="weaponType">
+            <option value="AK-47">AK-47</option>
+            <option value="M4A4">M4A4</option>
+            <option value="M4A1-S">M4A1-S</option>
+            <option value="AWP">AWP</option>
+            <option value="Desert Eagle">Desert Eagle</option>
+            <option value="Glock-18">Glock-18</option>
+            <option value="USP-S">USP-S</option>
+            <option value="P250">P250</option>
+            <option value="Five-SeveN">Five-SeveN</option>
+            <option value="Tec-9">Tec-9</option>
+            <option value="CZ75-Auto">CZ75-Auto</option>
+            <option value="R8 Revolver">R8 Revolver</option>
+            <option value="P2000">P2000</option>
+            <option value="Dual Berettas">Dual Berettas</option>
+            <option value="MAC-10">MAC-10</option>
+            <option value="MP7">MP7</option>
+            <option value="MP9">MP9</option>
+            <option value="MP5-SD">MP5-SD</option>
+            <option value="UMP-45">UMP-45</option>
+            <option value="P90">P90</option>
+            <option value="PP-Bizon">PP-Bizon</option>
+            <option value="FAMAS">FAMAS</option>
+            <option value="Galil AR">Galil AR</option>
+            <option value="SG 553">SG 553</option>
+            <option value="SSG 08">SSG 08</option>
+            <option value="G3SG1">G3SG1</option>
+            <option value="SCAR-20">SCAR-20</option>
+            <option value="Nova">Nova</option>
+            <option value="XM1014">XM1014</option>
+            <option value="MAG-7">MAG-7</option>
+            <option value="Sawed-Off">Sawed-Off</option>
+            <option value="M249">M249</option>
+            <option value="Negev">Negev</option>
+          </select>
+        </div>
+      </div>
+
+      <h2>Show Stages</h2>
+      <div class="stage-toggles">
+        <label><input type="checkbox" checked data-stage="1"> <span style="color:#ef4444">Stage 1</span></label>
+        <label><input type="checkbox" checked data-stage="2"> <span style="color:#f59e0b">Stage 2</span></label>
+        <label><input type="checkbox" checked data-stage="3"> <span style="color:#22c55e">Stage 3</span></label>
+        <label><input type="checkbox" checked data-stage="4"> <span style="color:#3b82f6">Stage 4</span></label>
+      </div>
+
+      <button class="btn-secondary" onclick="resetBoxes()">Reset Positions</button>
+      <button class="btn-primary" onclick="copyOutput()">Copy Output</button>
+
+      <h2 style="margin-top: 20px;">Output</h2>
+      <div class="coordinates" id="output"></div>
+    </div>
+
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="canvas" width="512" height="384"></canvas>
+      <div class="crop-box stage1" data-stage="1"><span>1</span><div class="resize-handle se"></div></div>
+      <div class="crop-box stage2" data-stage="2"><span>2</span><div class="resize-handle se"></div></div>
+      <div class="crop-box stage3" data-stage="3"><span>3</span><div class="resize-handle se"></div></div>
+      <div class="crop-box stage4" data-stage="4"><span>4</span><div class="resize-handle se"></div></div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvasContainer');
+
+    // Default positions
+    const defaultBoxes = {
+      1: { left: 300, top: 50, width: 150, height: 150 },
+      2: { left: 200, top: 100, width: 150, height: 150 },
+      3: { left: 100, top: 150, width: 150, height: 150 },
+      4: { left: 50, top: 200, width: 150, height: 150 },
+    };
+
+    let boxes = JSON.parse(JSON.stringify(defaultBoxes));
+    let currentImage = null;
+
+    function updateBoxPositions() {
+      document.querySelectorAll('.crop-box').forEach(box => {
+        const stage = parseInt(box.dataset.stage);
+        const b = boxes[stage];
+        box.style.left = b.left + 'px';
+        box.style.top = b.top + 'px';
+        box.style.width = b.width + 'px';
+        box.style.height = b.height + 'px';
+      });
+      updateOutput();
+    }
+
+    function updateOutput() {
+      const weapon = document.getElementById('weaponType').value;
+      const output = `"${weapon}": [
+  { left: ${boxes[1].left}, top: ${boxes[1].top}, width: ${boxes[1].width}, height: ${boxes[1].height} },
+  { left: ${boxes[2].left}, top: ${boxes[2].top}, width: ${boxes[2].width}, height: ${boxes[2].height} },
+  { left: ${boxes[3].left}, top: ${boxes[3].top}, width: ${boxes[3].width}, height: ${boxes[3].height} },
+  { left: ${boxes[4].left}, top: ${boxes[4].top}, width: ${boxes[4].width}, height: ${boxes[4].height} },
+  { left: 0, top: 0, width: 512, height: 384 },
+],`;
+      document.getElementById('output').textContent = output;
+    }
+
+    function resetBoxes() {
+      boxes = JSON.parse(JSON.stringify(defaultBoxes));
+      updateBoxPositions();
+    }
+
+    function copyOutput() {
+      const text = document.getElementById('output').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard!');
+      });
+    }
+
+    function loadFromUrl() {
+      const url = document.getElementById('imageUrl').value;
+      if (!url) return;
+      loadImage(url);
+    }
+
+    function loadFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      loadImage(url);
+    }
+
+    function loadImage(src) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        currentImage = img;
+        updateOutput();
+      };
+      img.onerror = () => alert('Failed to load image. Check CORS or URL.');
+      img.src = src;
+    }
+
+    // Drag and resize logic
+    let dragging = null;
+    let resizing = null;
+    let startX, startY, startLeft, startTop, startWidth, startHeight;
+
+    document.querySelectorAll('.crop-box').forEach(box => {
+      box.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('resize-handle')) {
+          resizing = box;
+          startX = e.clientX;
+          startY = e.clientY;
+          const stage = parseInt(box.dataset.stage);
+          startWidth = boxes[stage].width;
+          startHeight = boxes[stage].height;
+        } else {
+          dragging = box;
+          startX = e.clientX;
+          startY = e.clientY;
+          const stage = parseInt(box.dataset.stage);
+          startLeft = boxes[stage].left;
+          startTop = boxes[stage].top;
+        }
+        e.preventDefault();
+      });
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (dragging) {
+        const stage = parseInt(dragging.dataset.stage);
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        boxes[stage].left = Math.max(0, Math.min(canvas.width - boxes[stage].width, startLeft + dx));
+        boxes[stage].top = Math.max(0, Math.min(canvas.height - boxes[stage].height, startTop + dy));
+        updateBoxPositions();
+      }
+      if (resizing) {
+        const stage = parseInt(resizing.dataset.stage);
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const newSize = Math.max(50, Math.min(startWidth + dx, startHeight + dy, 300));
+        boxes[stage].width = newSize;
+        boxes[stage].height = newSize;
+        updateBoxPositions();
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      dragging = null;
+      resizing = null;
+    });
+
+    // Toggle visibility
+    document.querySelectorAll('.stage-toggles input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const stage = e.target.dataset.stage;
+        const box = document.querySelector(`.crop-box.stage${stage}`);
+        box.style.display = e.target.checked ? 'flex' : 'none';
+      });
+    });
+
+    // Weapon type change
+    document.getElementById('weaponType').addEventListener('change', updateOutput);
+
+    // Initialize
+    updateBoxPositions();
+  </script>
+</body>
+</html>
