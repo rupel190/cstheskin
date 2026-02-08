@@ -138,9 +138,11 @@
       <h1
         class="text-4xl font-bold bg-gradient-to-r from-orange-400 to-yellow-300 bg-clip-text text-transparent drop-shadow-lg"
       >
-        🔫 Guess the CS Skin
+        🔫 Guess the CS2 Skin
       </h1>
-      <p class="text-slate-300 mt-2 text-lg">Test your CS:GO knowledge</p>
+      <p class="text-slate-300 mt-2 text-lg">
+        Test your Counter-Strike knowledge
+      </p>
     </div>
 
     <!-- Game container with enhanced styling -->
@@ -154,8 +156,8 @@
         >
           <img
             src={imageUrl}
-            alt="CS skin"
-            class="max-w-full max-h-full object-contain m-auto absolute inset-0"
+            alt="Mystery CS skin"
+            class="max-w-full max-h-full object-contain m-auto absolute inset-0 scale-125"
           />
           <!-- Loading state overlay -->
           {#if !imageUrl}
@@ -236,9 +238,20 @@
                 role="status"
                 aria-live="polite"
               >
-                <div class="flex items-center justify-center gap-2 text-sm opacity-90">
-                  <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                <div
+                  class="flex items-center justify-center gap-2 text-sm opacity-90"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    aria-hidden="true"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                   <span>You got it!</span>
                 </div>
@@ -251,9 +264,20 @@
                 role="status"
                 aria-live="polite"
               >
-                <div class="flex items-center justify-center gap-2 text-sm opacity-90">
-                  <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                <div
+                  class="flex items-center justify-center gap-2 text-sm opacity-90"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    aria-hidden="true"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                   <span>Out of guesses!</span>
                 </div>
