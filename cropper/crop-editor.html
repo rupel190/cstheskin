@@ -123,6 +123,47 @@
       font-size: 0.85rem;
       margin-left: 10px;
     }
+
+    .skin-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .skin-nav button {
+      padding: 8px 16px;
+      font-size: 1.2rem;
+      margin: 0;
+    }
+    .skin-counter {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      min-width: 80px;
+      text-align: center;
+    }
+    .skin-name {
+      color: #f59e0b;
+      font-size: 0.95rem;
+      margin-top: 8px;
+      padding: 8px;
+      background: #0f172a;
+      border-radius: 6px;
+      text-align: center;
+      min-height: 40px;
+    }
+    .folder-status {
+      color: #22c55e;
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+    .folder-status.error {
+      color: #ef4444;
+    }
+    .keyboard-hint {
+      color: #64748b;
+      font-size: 0.8rem;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
@@ -130,7 +171,7 @@
 
   <div class="instructions">
     <strong>Instructions:</strong>
-    Select a weapon to load its current crop values. Load an image via URL or file.
+    Load skins folder, select a weapon, then use <code>← →</code> arrow keys or buttons to browse skins.
     Drag boxes to reposition, resize with corner handle.
     Copy output to <code>cropper.ts</code>.
   </div>
@@ -148,16 +189,20 @@
         </div>
       </div>
 
-      <h2>Load Image</h2>
-      <div class="input-group">
-        <label>Image URL</label>
-        <input type="text" id="imageUrl" placeholder="https://...">
-      </div>
-      <button class="btn-primary" onclick="loadFromUrl()">Load URL</button>
+      <h2>Load Skins Folder</h2>
+      <input type="file" id="folderInput" webkitdirectory multiple accept="image/png" style="display:none" onchange="handleFolderSelect(event)">
+      <button class="btn-primary" onclick="selectFolder()">📁 Select Folder</button>
+      <div id="folderStatus" class="folder-status"></div>
 
-      <div class="input-group">
-        <label>Or upload file</label>
-        <input type="file" id="imageFile" accept="image/*" onchange="loadFromFile(event)">
+      <div id="skinNavSection" style="display: none;">
+        <h2 style="margin-top: 15px;">Browse Skins</h2>
+        <div class="skin-nav">
+          <button class="btn-secondary" onclick="prevSkin()">←</button>
+          <span id="skinCounter" class="skin-counter">0 / 0</span>
+          <button class="btn-secondary" onclick="nextSkin()">→</button>
+        </div>
+        <div id="skinName" class="skin-name">No skin loaded</div>
+        <div class="keyboard-hint">Use ← → arrow keys to navigate</div>
       </div>
 
       <hr style="border-color: #334155; margin: 20px 0;">
@@ -171,7 +216,8 @@
       </div>
 
       <button class="btn-secondary" onclick="resetBoxes()">Reset to Default</button>
-      <button class="btn-primary" onclick="copyOutput()">Copy Output</button>
+      <button class="btn-primary" onclick="copyOutput()">Copy Current</button>
+      <button class="btn-primary" onclick="copyAllWeapons()" style="background: #22c55e;">Copy All Weapons</button>
 
       <h2 style="margin-top: 20px;">Output</h2>
       <div class="coordinates" id="output"></div>
@@ -410,6 +456,10 @@
     let boxes = JSON.parse(JSON.stringify(defaultBoxes));
     let currentImage = null;
 
+    // Skin browser state
+    let skinsByWeapon = {}; // { weaponName: [{ name, file }] }
+    let currentSkinIndex = 0;
+
     // Populate weapon dropdown
     const weaponSelect = document.getElementById('weaponType');
     Object.keys(cropData).sort().forEach(weapon => {
@@ -434,7 +484,113 @@
       } else {
         document.getElementById('loadedIndicator').textContent = '';
       }
+      // Reset skin index and load first skin for this weapon
+      currentSkinIndex = 0;
+      loadCurrentSkin();
     }
+
+    function selectFolder() {
+      // Use the hidden file input with webkitdirectory
+      document.getElementById('folderInput').click();
+    }
+
+    function handleFolderSelect(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      skinsByWeapon = {};
+      let totalFiles = 0;
+
+      for (const file of files) {
+        if (file.name.endsWith('.png')) {
+          // Parse weapon name from filename like "AK-47_|_Skin_Name.png"
+          const match = file.name.match(/^(.+?)_\|_(.+)\.png$/);
+          if (match) {
+            const weapon = match[1].replace(/_/g, ' '); // "Dual_Berettas" -> "Dual Berettas"
+            const skinName = match[2].replace(/_/g, ' ');
+
+            if (!skinsByWeapon[weapon]) {
+              skinsByWeapon[weapon] = [];
+            }
+
+            skinsByWeapon[weapon].push({
+              name: skinName,
+              file: file,
+              url: URL.createObjectURL(file)
+            });
+            totalFiles++;
+          }
+        }
+      }
+
+      // Sort skins alphabetically within each weapon
+      for (const weapon of Object.keys(skinsByWeapon)) {
+        skinsByWeapon[weapon].sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      const weaponCount = Object.keys(skinsByWeapon).length;
+      document.getElementById('folderStatus').textContent =
+        `✓ Loaded ${totalFiles} skins for ${weaponCount} weapons`;
+      document.getElementById('folderStatus').classList.remove('error');
+      document.getElementById('skinNavSection').style.display = 'block';
+
+      // If a weapon is selected, load its first skin
+      currentSkinIndex = 0;
+      loadCurrentSkin();
+    }
+
+    function getCurrentWeaponSkins() {
+      const weapon = weaponSelect.value;
+      return skinsByWeapon[weapon] || [];
+    }
+
+    function loadCurrentSkin() {
+      const skins = getCurrentWeaponSkins();
+      const counter = document.getElementById('skinCounter');
+      const nameEl = document.getElementById('skinName');
+
+      if (skins.length === 0) {
+        counter.textContent = '0 / 0';
+        nameEl.textContent = 'No skins for this weapon';
+        return;
+      }
+
+      // Clamp index
+      currentSkinIndex = Math.max(0, Math.min(currentSkinIndex, skins.length - 1));
+
+      const skin = skins[currentSkinIndex];
+      counter.textContent = `${currentSkinIndex + 1} / ${skins.length}`;
+      nameEl.textContent = skin.name;
+
+      loadImage(skin.url);
+    }
+
+    function prevSkin() {
+      const skins = getCurrentWeaponSkins();
+      if (skins.length === 0) return;
+      currentSkinIndex = (currentSkinIndex - 1 + skins.length) % skins.length;
+      loadCurrentSkin();
+    }
+
+    function nextSkin() {
+      const skins = getCurrentWeaponSkins();
+      if (skins.length === 0) return;
+      currentSkinIndex = (currentSkinIndex + 1) % skins.length;
+      loadCurrentSkin();
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSkin();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        nextSkin();
+      }
+    });
 
     function updateBoxPositions() {
       document.querySelectorAll('.crop-box').forEach(box => {
@@ -458,6 +614,16 @@
   { left: 0, top: 0, width: 512, height: 384 },
 ],`;
       document.getElementById('output').textContent = output;
+
+      // Update cropData so "Copy All" reflects edits
+      if (weapon && cropData[weapon]) {
+        cropData[weapon] = [
+          { ...boxes[1] },
+          { ...boxes[2] },
+          { ...boxes[3] },
+          { ...boxes[4] },
+        ];
+      }
     }
 
     function resetBoxes() {
@@ -473,17 +639,28 @@
       });
     }
 
-    function loadFromUrl() {
-      const url = document.getElementById('imageUrl').value;
-      if (!url) return;
-      loadImage(url);
-    }
+    function copyAllWeapons() {
+      const lines = ['export const cropSizes: Record<string, CropSize[]> = {'];
 
-    function loadFromFile(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const url = URL.createObjectURL(file);
-      loadImage(url);
+      // Sort weapons alphabetically
+      const sortedWeapons = Object.keys(cropData).sort();
+
+      for (const weapon of sortedWeapons) {
+        const data = cropData[weapon];
+        lines.push(`  "${weapon}": [`);
+        for (const box of data) {
+          lines.push(`    { left: ${box.left}, top: ${box.top}, width: ${box.width}, height: ${box.height} },`);
+        }
+        lines.push(`    { left: 0, top: 0, width: 512, height: 384 },`);
+        lines.push(`  ],`);
+      }
+
+      lines.push('};');
+
+      const output = lines.join('\n');
+      navigator.clipboard.writeText(output).then(() => {
+        alert(`Copied crop data for ${sortedWeapons.length} weapons!`);
+      });
     }
 
     function loadImage(src) {
