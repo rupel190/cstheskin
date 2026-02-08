@@ -263,7 +263,7 @@ async function multiCrop(filePath: string, outputDir: string, cropboxes: CropBox
 
   //TODO: Get correct output dir from json to crop
 
-  const imageDir = '../webscraper/images/skins';
+  const imageDir = '../webscraper/skins';
   const outputDir = './cropped';
   await fs.mkdir(outputDir, { recursive: true }); // ensure output dir exists
   const files = await fs.readdir(imageDir);
