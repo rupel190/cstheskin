@@ -19,9 +19,27 @@ export class ScrapeImages {
     }
   }
 
+  private async downloadImage(url: string, outputPath: string) {
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    const response = await fetch(url);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await fs.writeFile(outputPath, buffer);
+    console.log(`✅ Downloaded image: ${outputPath}`);
+  }
+
   async scrapeSkinImage(exportPath: string) {
-    const imgSelector = "a.image-popup-vertical-fit.misc-click img.main-skin-img"
-    await this.saveImage(imgSelector, exportPath);
+    // Find the main skin image and download from Steam CDN
+    const selector = "img.img-responsive.center-block.margin-top-sm";
+    const el = await this.page.$(selector);
+
+    if (el) {
+      const src = await el.evaluate((img) => img.getAttribute("src"));
+      if (src) {
+        await this.downloadImage(src, exportPath);
+        return;
+      }
+    }
+    console.warn(`⚠️ No skin image found`);
   }
 
   async scrapeCaseImage(exportPath: string) {

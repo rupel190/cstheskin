@@ -14,8 +14,10 @@ async function scrapeCards(browser: Browser, url: string) {
   await page.goto(url, { waitUntil: 'networkidle2' });
   await page.screenshot({ path: "debug.png" });
 
+  // Wait for Cloudflare challenge - user may need to manually complete it
+  console.log("⏳ Waiting for page to load (complete Cloudflare check if prompted)...");
   const cardSelector = "div.col-lg-4.col-md-6.col-widen.text-center";
-  await page.waitForSelector(cardSelector);
+  await page.waitForSelector(cardSelector, { timeout: 120000 }); // 2 min timeout
 
   // Fetch all skin cards
   const cards = await page.$$eval(cardSelector, (elements) =>
@@ -34,8 +36,7 @@ function getReplaced(name: string, prefix: string) {
   return outPath;
 }
 
-async function scrapeUrl(browser: Browser, url: string) {
-
+async function scrapeUrlWithBrowser(browser: Browser, url: string) {
   try {
     const cards = await scrapeCards(browser, url);
     console.log(`Found ${cards.length} cards. Processing ${cards.length - 1} cards (skipping first).`);
@@ -89,21 +90,21 @@ async function scrapeUrl(browser: Browser, url: string) {
 
   } catch (error) {
     console.error('An error occurred during scraping:', error);
-  } finally {
-    // Always close the browser
-    await browser.close();
-    console.log('Browser closed');
+    return [];
   }
 }
 
-async function writeSkinData(url: string, allSkinDetails) {
+async function writeSkinData(url: string, allSkinDetails: any[] | undefined) {
+  if (!allSkinDetails || allSkinDetails.length === 0) {
+    console.log(`⚠️ No skin data to save for ${url}`);
+    return;
+  }
   const outputFileName = url.split('/').pop();
   // Save all data to a JSON file
   const fileName = `${outputFileName}-${new Date().toISOString().slice(0, 10)}.json`;
   const fullPath = fileName;
   await fs.writeFile(fullPath, JSON.stringify(allSkinDetails, null, 2));
   console.log(`Successfully saved ${allSkinDetails.length} skin details to ${fileName}`);
-
 }
 
 (async () => {
@@ -117,11 +118,21 @@ async function writeSkinData(url: string, allSkinDetails) {
     'https://stash.clash.gg/case/376/Revolution-Case',
   ];
 
+  // Single browser instance - only need to pass Cloudflare once
+  const browser = await puppeteer.launch({
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    headless: false,
+    args: ['--no-sandbox', '--start-maximized'],
+  });
+
   for (const url of urls) {
-    const browser = await puppeteer.launch();
-    const allSkinDetails = await scrapeUrl(browser, url);
+    console.log(`\n🎯 Starting: ${url}`);
+    const allSkinDetails = await scrapeUrlWithBrowser(browser, url);
     await writeSkinData(url, allSkinDetails);
   }
+
+  await browser.close();
+  console.log('\n✅ All cases completed!');
 
 
 })();
