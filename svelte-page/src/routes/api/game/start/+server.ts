@@ -7,7 +7,7 @@ export const GET: RequestHandler = async ({ cookies, platform }) => {
   const env = platform!.env;
 
   try {
-    const gameState = getGameState(cookies);
+    const gameState = await getGameState(cookies, platform);
 
     // Get list of solved skin UUIDs
     const solvedSkinUuids = Object.entries(gameState.skin_progress)

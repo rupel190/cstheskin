@@ -90,7 +90,7 @@ export const GET: RequestHandler = async ({ url, platform, cookies }) => {
   }
 
   try {
-    const gameState = getGameState(cookies);
+    const gameState = await getGameState(cookies, platform);
     const skinProgress = getSkinProgress(gameState, skinUuid);
     const currentStage = getCurrentStage(skinProgress);
 
@@ -123,7 +123,7 @@ export const GET: RequestHandler = async ({ url, platform, cookies }) => {
 
     // Update progress: increment attempts, set solved status
     const newAttempts = skinProgress.attempts + 1;
-    updateSkinProgress(cookies, skinUuid, newAttempts, solved);
+    await updateSkinProgress(cookies, skinUuid, newAttempts, solved, platform);
 
     console.log(`Guess for skin ${skinUuid}: "${guess}" vs "${skin.name}" - ${solved ? 'CORRECT' : 'WRONG'} (attempt ${newAttempts})`);
 
@@ -132,7 +132,7 @@ export const GET: RequestHandler = async ({ url, platform, cookies }) => {
     if (newAttempts >= 5 && !solved) {
       try {
         // Get updated game state to include this failed skin
-        const updatedGameState = getGameState(cookies);
+        const updatedGameState = await getGameState(cookies, platform);
         const completedOrFailedSkins = Object.entries(updatedGameState.skin_progress)
           .filter(([_, progress]) => progress.solved || progress.attempts >= 5)
           .map(([skinUuid, _]) => skinUuid);

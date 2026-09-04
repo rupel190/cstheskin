@@ -15,7 +15,7 @@ export const GET: RequestHandler = async ({ cookies, platform }) => {
   const env = platform!.env;
 
   try {
-    const gameState = getGameState(cookies);
+    const gameState = await getGameState(cookies, platform);
     const historyItems: GameHistoryItem[] = [];
 
     // Process each skin in the progress

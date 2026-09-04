@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ url, platform, cookies }) => {
   }
 
   try {
-    const gameState = getGameState(cookies);
+    const gameState = await getGameState(cookies, platform);
     const skinProgress = getSkinProgress(gameState, skinUuid);
     const currentStage = getCurrentStage(skinProgress);
 
