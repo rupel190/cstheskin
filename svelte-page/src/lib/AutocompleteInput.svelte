@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from "$app/paths";
   import { onMount } from "svelte";
 
   export let value = "";
@@ -57,7 +58,7 @@
     loadError = false;
 
     try {
-      const res = await fetch("/api/skins");
+      const res = await fetch(`${base}/api/skins`);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }

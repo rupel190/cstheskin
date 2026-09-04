@@ -1,6 +1,0 @@
-# https://www.robotstxt.org/robotstxt.html
-User-agent: *
-Allow: /
-Disallow: /api/
-
-Sitemap: https://guess-the-cs2-skin.rupel.xyz/sitemap.xml

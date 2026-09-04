@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from "$app/paths";
 	import { onMount } from "svelte";
 	import type { GameHistoryItem } from "../api/history/+server.js";
 
@@ -24,7 +25,7 @@
 	async function loadHistory() {
 		loading = true;
 		try {
-			const res = await fetch('/api/history');
+			const res = await fetch(`${base}/api/history`);
 			const data = await res.json();
 			history = data.history || [];
 			stats = data.stats || stats;
@@ -80,7 +81,7 @@
 	<!-- Per-visitor content with nothing for a searcher to land on — keep it out of the index
 	     so it can't compete with the game page or dilute the site with thin pages. -->
 	<meta name="robots" content="noindex, follow" />
-	<link rel="canonical" href="https://guess-the-cs2-skin.rupel.xyz/history" />
+	<link rel="canonical" href="https://rupel.xyz/guesstheskin/history" />
 </svelte:head>
 
 <div class="max-w-6xl mx-auto p-6">
@@ -98,7 +99,7 @@
 			<h2 class="text-xl font-semibold mb-4">No games played yet!</h2>
 			<p class="text-gray-600 mb-6">Start playing to build your game history</p>
 			<a 
-				href="/" 
+				href="{base}/" 
 				class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
 			>
 				Play Now
@@ -205,7 +206,7 @@
 		<!-- Back to Game Button -->
 		<div class="text-center mt-12">
 			<a 
-				href="/" 
+				href="{base}/" 
 				class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
 			>
 				← Back to Game

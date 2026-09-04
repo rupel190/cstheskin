@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from "$app/paths";
   import { onMount } from "svelte";
   import AutocompleteInput from "$lib/AutocompleteInput.svelte";
 
@@ -18,7 +19,7 @@
   }> = [];
 
   async function startGame() {
-    const res = await fetch("/api/game/start", { method: "GET" });
+    const res = await fetch(`${base}/api/game/start`, { method: "GET" });
     const data = await res.json();
     skinUuid = data.uuid;
     resetGameState();
@@ -42,7 +43,7 @@
       skinUuid,
       stage,
     });
-    const res = await fetch(`/api/image?${params.toString()}`, {
+    const res = await fetch(`${base}/api/image?${params.toString()}`, {
       method: "GET",
     });
     const blob = await res.blob();
@@ -52,7 +53,7 @@
 
   async function submitGuess() {
     const params = new URLSearchParams({ skinUuid, guess });
-    const res = await fetch(`/api/guess?${params.toString()}`, {
+    const res = await fetch(`${base}/api/guess?${params.toString()}`, {
       method: "GET",
     });
     const result = await res.json();
@@ -119,16 +120,16 @@
     name="description"
     content="Guess the CS2 skin from a crop. Miss it and another crop is revealed — five stages, the last shows the whole skin. Free Counter-Strike quiz, in the browser, no account."
   />
-  <link rel="canonical" href="https://guess-the-cs2-skin.rupel.xyz/" />
+  <link rel="canonical" href="https://rupel.xyz/guesstheskin/" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://guess-the-cs2-skin.rupel.xyz/" />
+  <meta property="og:url" content="https://rupel.xyz/guesstheskin/" />
   <meta property="og:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
   <meta
     property="og:description"
     content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?"
   />
-  <meta property="og:image" content="https://guess-the-cs2-skin.rupel.xyz/og-image.png" />
+  <meta property="og:image" content="https://rupel.xyz/guesstheskin/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
@@ -137,13 +138,13 @@
     name="twitter:description"
     content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?"
   />
-  <meta name="twitter:image" content="https://guess-the-cs2-skin.rupel.xyz/og-image.png" />
+  <meta name="twitter:image" content="https://rupel.xyz/guesstheskin/og-image.png" />
 
   {@html `<script type="application/ld+json">${JSON.stringify({
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "Guess the CS2 Skin",
-    url: "https://guess-the-cs2-skin.rupel.xyz/",
+    url: "https://rupel.xyz/guesstheskin/",
     description:
       "A browser quiz game: identify Counter-Strike 2 weapon skins from five progressively revealed crops.",
     applicationCategory: "GameApplication",
