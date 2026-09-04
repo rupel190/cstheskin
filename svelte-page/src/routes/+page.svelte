@@ -117,7 +117,7 @@
   <title>Guess the CS2 Skin — Counter-Strike Skin Quiz Game</title>
   <meta
     name="description"
-    content="Can you name the CS2 skin? Five progressively revealed images, one guess each round. A free Counter-Strike skin quiz that runs in the browser — no account, no download."
+    content="Guess the CS2 skin from a crop. Miss it and another crop is revealed — five stages, the last shows the whole skin. Free Counter-Strike quiz, in the browser, no account."
   />
   <link rel="canonical" href="https://guess-the-cs2-skin.rupel.xyz/" />
 
@@ -126,7 +126,7 @@
   <meta property="og:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
   <meta
     property="og:description"
-    content="Five progressively revealed images, one guess each round. How many CS2 skins can you name?"
+    content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?"
   />
   <meta property="og:image" content="https://guess-the-cs2-skin.rupel.xyz/og-image.png" />
   <meta property="og:image:width" content="1200" />
@@ -135,7 +135,7 @@
   <meta name="twitter:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
   <meta
     name="twitter:description"
-    content="Five progressively revealed images, one guess each round. How many CS2 skins can you name?"
+    content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?"
   />
   <meta name="twitter:image" content="https://guess-the-cs2-skin.rupel.xyz/og-image.png" />
 
@@ -145,7 +145,7 @@
     name: "Guess the CS2 Skin",
     url: "https://guess-the-cs2-skin.rupel.xyz/",
     description:
-      "A browser quiz game: identify Counter-Strike 2 weapon skins from five progressively revealed images.",
+      "A browser quiz game: identify Counter-Strike 2 weapon skins from five progressively revealed crops.",
     applicationCategory: "GameApplication",
     operatingSystem: "Any (web browser)",
     browserRequirements: "Requires JavaScript",
