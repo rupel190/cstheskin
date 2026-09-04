@@ -75,7 +75,12 @@
 </script>
 
 <svelte:head>
-	<title>Game History - CS The Skin</title>
+	<title>Your game history — Guess the CS2 Skin</title>
+	<meta name="description" content="Your past rounds of Guess the CS2 Skin: which skins you got, and how many stages it took." />
+	<!-- Per-visitor content with nothing for a searcher to land on — keep it out of the index
+	     so it can't compete with the game page or dilute the site with thin pages. -->
+	<meta name="robots" content="noindex, follow" />
+	<link rel="canonical" href="https://guess-the-cs2-skin.rupel.xyz/history" />
 </svelte:head>
 
 <div class="max-w-6xl mx-auto p-6">

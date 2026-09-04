@@ -1,38 +1,31 @@
-# sv
+# svelte-page — the game frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
-
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+SvelteKit + Tailwind, deployed to Cloudflare Workers.
+Live: <https://guess-the-cs2-skin.rupel.xyz>
 
 ```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+npm install
+npm run dev        # vite dev server
+npm run build      # production build
+npm run deploy     # build + wrangler deploy
+npm run check      # svelte-check
 ```
 
-## Developing
+## Routes
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+| Route | What |
+| --- | --- |
+| `/` | The game — five progressively revealed images, one guess per stage |
+| `/history` | Per-visitor round history (`noindex` — thin, per-user) |
+| `/api/game/start`, `/api/guess`, `/api/history`, `/api/image`, `/api/skins` | Worker endpoints, `Disallow`ed in robots.txt |
 
-```bash
-npm run dev
+## Head tags
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+Route-varying tags (`title`, `description`, `canonical`, `og:*`) live in each
+route's own `<svelte:head>`. Only invariants (`og:site_name`, `twitter:card`,
+`theme-color`) sit in `+layout.svelte` — Svelte *concatenates* head content
+rather than overriding it, so a `<title>` in the layout plus one in a page
+emits two tags.
 
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+`static/og-image.png` is 1200×630 and referenced absolutely; regenerate it from
+a screenshot of the live game if the UI changes.

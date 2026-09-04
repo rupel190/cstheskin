@@ -113,6 +113,48 @@
   });
 </script>
 
+<svelte:head>
+  <title>Guess the CS2 Skin — Counter-Strike Skin Quiz Game</title>
+  <meta
+    name="description"
+    content="Can you name the CS2 skin? Five progressively revealed images, one guess each round. A free Counter-Strike skin quiz that runs in the browser — no account, no download."
+  />
+  <link rel="canonical" href="https://guess-the-cs2-skin.rupel.xyz/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://guess-the-cs2-skin.rupel.xyz/" />
+  <meta property="og:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
+  <meta
+    property="og:description"
+    content="Five progressively revealed images, one guess each round. How many CS2 skins can you name?"
+  />
+  <meta property="og:image" content="https://guess-the-cs2-skin.rupel.xyz/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
+  <meta
+    name="twitter:description"
+    content="Five progressively revealed images, one guess each round. How many CS2 skins can you name?"
+  />
+  <meta name="twitter:image" content="https://guess-the-cs2-skin.rupel.xyz/og-image.png" />
+
+  {@html `<script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "Guess the CS2 Skin",
+    url: "https://guess-the-cs2-skin.rupel.xyz/",
+    description:
+      "A browser quiz game: identify Counter-Strike 2 weapon skins from five progressively revealed images.",
+    applicationCategory: "GameApplication",
+    operatingSystem: "Any (web browser)",
+    browserRequirements: "Requires JavaScript",
+    author: { "@type": "Person", name: "Christoph Rippel", url: "https://rupel.xyz" },
+    offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+    isAccessibleForFree: true
+  })}<\/script>`}
+</svelte:head>
+
 <!-- Background with CS-themed gradient and pattern -->
 <div
   class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-orange-900 relative overflow-hidden"
