@@ -19,3 +19,11 @@ build/
 debug.png
 images/
 *.log
+
+# Scraped output — skin names and Valve's case/collection artwork. Not ours to
+# redistribute, and regenerable by re-running the scraper, so it stays local.
+*-Case-*.json
+*-Collection-*.json
+cases/
+collections/
+skins/
