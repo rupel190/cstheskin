@@ -114,48 +114,6 @@
   });
 </script>
 
-<svelte:head>
-  <title>Guess the CS2 Skin — Counter-Strike Skin Quiz Game</title>
-  <meta
-    name="description"
-    content="Guess the CS2 skin from a crop. Miss it and another crop is revealed — five stages, the last shows the whole skin. Free Counter-Strike quiz, in the browser, no account."
-  />
-  <link rel="canonical" href="https://rupel.xyz/guesstheskin/" />
-
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://rupel.xyz/guesstheskin/" />
-  <meta property="og:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
-  <meta
-    property="og:description"
-    content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?"
-  />
-  <meta property="og:image" content="https://rupel.xyz/guesstheskin/og-image.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-
-  <meta name="twitter:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
-  <meta
-    name="twitter:description"
-    content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?"
-  />
-  <meta name="twitter:image" content="https://rupel.xyz/guesstheskin/og-image.png" />
-
-  {@html `<script type="application/ld+json">${JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: "Guess the CS2 Skin",
-    url: "https://rupel.xyz/guesstheskin/",
-    description:
-      "A browser quiz game: identify Counter-Strike 2 weapon skins from five progressively revealed crops.",
-    applicationCategory: "GameApplication",
-    operatingSystem: "Any (web browser)",
-    browserRequirements: "Requires JavaScript",
-    author: { "@type": "Person", name: "Christoph Rippel", url: "https://rupel.xyz" },
-    offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
-    isAccessibleForFree: true
-  })}<\/script>`}
-</svelte:head>
-
 <!-- Background with CS-themed gradient and pattern -->
 <div
   class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-orange-900 relative overflow-hidden"

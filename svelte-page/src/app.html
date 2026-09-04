@@ -4,6 +4,43 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+		<!--
+			These live here rather than in a route's <svelte:head> on purpose. The Cloudflare
+			route serves assets before the request reaches the Worker, so the document is a
+			static shell and SSR never runs — anything in <svelte:head> would only appear after
+			hydration. Googlebot executes JS and would catch up eventually, but Facebook, Slack,
+			Discord and every other card scraper do not, so the title and OG tags would be
+			missing exactly where they matter. app.html is the template for the shell as well as
+			for SSR, so what is written here always ships.
+
+			Consequence: these are site-wide, not per-route. /history overrides its own title
+			client-side and is kept out of the index via robots.txt on rupel.xyz.
+		-->
+		<title>Guess the CS2 Skin — Counter-Strike Skin Quiz Game</title>
+		<meta name="description" content="Guess the CS2 skin from a crop. Miss it and another crop is revealed — five stages, the last shows the whole skin. Free Counter-Strike quiz, in the browser, no account." />
+		<link rel="canonical" href="https://rupel.xyz/guesstheskin/" />
+		<meta name="theme-color" content="#0f172a" />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Guess the CS2 Skin" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:url" content="https://rupel.xyz/guesstheskin/" />
+		<meta property="og:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
+		<meta property="og:description" content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?" />
+		<meta property="og:image" content="https://rupel.xyz/guesstheskin/og-image.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="Guess the CS2 Skin — Counter-Strike Skin Quiz" />
+		<meta name="twitter:description" content="Guess the skin from a crop. Miss it and another is revealed — five stages, the last shows the whole thing. How many can you name?" />
+		<meta name="twitter:image" content="https://rupel.xyz/guesstheskin/og-image.png" />
+
+		<script type="application/ld+json">
+			{"@context":"https://schema.org","@type":"WebApplication","name":"Guess the CS2 Skin","url":"https://rupel.xyz/guesstheskin/","description":"A browser quiz game: identify Counter-Strike 2 weapon skins from five progressively revealed crops.","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","browserRequirements":"Requires JavaScript","author":{"@type":"Person","name":"Christoph Rippel","url":"https://rupel.xyz"},"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"isAccessibleForFree":true}
+		</script>
+
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
