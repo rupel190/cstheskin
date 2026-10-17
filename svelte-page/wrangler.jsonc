@@ -6,6 +6,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "guess-the-skin-game",
+  // Only the custom domains serve the site: no *.workers.dev name, no per-version preview URLs.
+  "workers_dev": false,
+  "preview_urls": false,
   "main": ".svelte-kit/cloudflare/_worker.js",
   "compatibility_date": "2025-06-14",
   /**
